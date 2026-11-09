@@ -11,7 +11,7 @@ async function loadOnlineData(){for(const b of buckets)db[b]=[];const {data:rows
 async function startOnline(){
  const cfg=window.MENJA_CONFIG||{};
  if(!cfg.supabaseUrl||!cfg.supabaseAnonKey){document.getElementById('view').innerHTML=`<div class="box"><h1>Configurazione necessaria</h1><p>Inserisci Project URL e chiave anon/publishable Supabase in <code>config.js</code>, esegui lo schema SQL e ricarica la pagina. Non usare mai la chiave service_role.</p></div>`;return}
- if(!onlineClient)onlineClient=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);
+ if(!onlineClient)onlineClient=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey,{auth:{persistSession:false}});
  const {data:{session},error}=await onlineClient.auth.getSession();if(error){showError(error);return}activeUser=session?.user||null;
  if(!activeUser){authScreen();return}
  const {data:profile,error:pe}=await onlineClient.from('profiles').select('*').eq('id',activeUser.id).single();if(pe){showError(pe);return}activeProfile=profile;document.getElementById('signoutButton').hidden=false;document.getElementById('sessionInfo').textContent=`${profile.full_name||profile.email} · ${profile.role==='admin'?'Amministratore':profile.category+(profile.customer_code?' · Codice '+profile.customer_code+' · Fidelity '+profile.customer_code:'')}`;
