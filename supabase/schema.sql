@@ -90,3 +90,36 @@ create policy "records admin delete" on public.records for delete to authenticat
 -- L'account iniziale diventa amministratore solo dopo conferma email e accesso.
 -- Eseguire manualmente sostituendo l'indirizzo con quello del titolare:
 -- update public.profiles set role='admin', approval_status='approved' where email='tuo-indirizzo@example.it';
+
+
+-- Codici cliente progressivi e fidelity per nuove registrazioni.
+create sequence if not exists public.customer_code_seq start with 29;
+alter table public.profiles add column if not exists customer_code text;
+alter table public.profiles add column if not exists fidelity_points integer not null default 0;
+create unique index if not exists profiles_customer_code_unique on public.profiles(customer_code) where customer_code is not null;
+select setval('public.customer_code_seq', greatest(28::bigint, coalesce((select max(nullif(regexp_replace(customer_code, '[^0-9]', '', 'g'), '')::bigint) from public.profiles), 0)), true);
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer set search_path = '' as $$
+declare
+  customer_category text;
+  next_code bigint;
+begin
+  customer_category := case when new.raw_user_meta_data->>'category' in ('Privati','Pizzerie','Hotel','Ristoranti','Negozi e rivenditori','Altre attività') then new.raw_user_meta_data->>'category' else 'Privati' end;
+  next_code := nextval('public.customer_code_seq');
+  insert into public.profiles(id,email,full_name,category,customer_code,fidelity_points)
+  values (new.id, new.email, coalesce(new.raw_user_meta_data->>'full_name',''), customer_category,
+    'C' || case when length(next_code::text)<3 then lpad(next_code::text,3,'0') else next_code::text end, 0);
+  return new;
+end; $$;
+create or replace function public.allocate_customer_code()
+returns text language plpgsql security definer set search_path = '' as $$
+declare next_code bigint;
+begin
+  if (select auth.uid()) is null or not public.is_admin() then
+    raise exception 'Only an administrator can allocate a manual customer code';
+  end if;
+  next_code := nextval('public.customer_code_seq');
+  return 'C' || case when length(next_code::text)<3 then lpad(next_code::text,3,'0') else next_code::text end;
+end; $$;
+revoke all on function public.allocate_customer_code() from public, anon;
+grant execute on function public.allocate_customer_code() to authenticated;
