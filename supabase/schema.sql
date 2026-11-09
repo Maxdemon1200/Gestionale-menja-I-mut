@@ -1,0 +1,92 @@
+-- Menja i Mut Gestionale: schema iniziale. Eseguire nel SQL Editor Supabase.
+create extension if not exists pgcrypto;
+
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text not null,
+  full_name text not null default '',
+  category text not null default 'Privati' check (category in ('Privati','Pizzerie','Hotel','Ristoranti','Negozi e rivenditori','Altre attività')),
+  role text not null default 'customer' check (role in ('admin','customer')),
+  approval_status text not null default 'pending' check (approval_status in ('pending','approved','suspended','rejected')),
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.records (
+  id uuid primary key default gen_random_uuid(),
+  kind text not null check (kind in ('customers','orders','products','pricelists','recipes','production','lots','inventory','fidelity','crm','finance','invoices','statistics','settings')),
+  owner_id uuid references auth.users(id) on delete set null,
+  payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists records_kind_created_idx on public.records(kind, created_at desc);
+create index if not exists records_owner_idx on public.records(owner_id, kind);
+
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  insert into public.profiles(id,email,full_name,category)
+  values (new.id, new.email, coalesce(new.raw_user_meta_data->>'full_name',''),
+    case when new.raw_user_meta_data->>'category' in ('Privati','Pizzerie','Hotel','Ristoranti','Negozi e rivenditori','Altre attività') then new.raw_user_meta_data->>'category' else 'Privati' end);
+  return new;
+end; $$;
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created after insert on auth.users for each row execute procedure public.handle_new_user();
+
+alter table public.profiles enable row level security;
+alter table public.records enable row level security;
+revoke all on public.profiles, public.records from anon;
+grant select, insert, update on public.profiles to authenticated;
+grant select, insert, update, delete on public.records to authenticated;
+
+create or replace function public.protect_profile_privileges()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if (select auth.uid()) = old.id and (new.role <> old.role or new.approval_status <> old.approval_status) then
+    raise exception 'Only an administrator can change account role or approval';
+  end if;
+  return new;
+end; $$;
+drop trigger if exists protect_profile_privileges on public.profiles;
+create trigger protect_profile_privileges before update on public.profiles for each row execute procedure public.protect_profile_privileges();
+
+create or replace function public.is_admin()
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists(select 1 from public.profiles where id=(select auth.uid()) and role='admin');
+$$;
+create or replace function public.is_approved_customer()
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists(select 1 from public.profiles where id=(select auth.uid()) and approval_status='approved');
+$$;
+
+drop policy if exists "profile self read" on public.profiles;
+create policy "profile self read" on public.profiles for select to authenticated using (id = (select auth.uid()) or public.is_admin());
+drop policy if exists "profile self update limited" on public.profiles;
+drop policy if exists "admin profile management" on public.profiles;
+create policy "admin profile management" on public.profiles for all to authenticated using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "records read by role" on public.records;
+create policy "records read by role" on public.records for select to authenticated using (
+  public.is_admin()
+  or (owner_id=(select auth.uid()) and public.is_approved_customer())
+  or (kind='products' and public.is_approved_customer())
+  or (kind='pricelists' and public.is_approved_customer() and (
+    (nullif(payload->>'customer','') is not null and payload->>'customer'=(select coalesce(nullif(full_name,''),email) from public.profiles where id=(select auth.uid())))
+    or (nullif(payload->>'customer','') is null and payload->>'category'=(select category from public.profiles where id=(select auth.uid())))
+  ))
+);
+drop policy if exists "records insert by role" on public.records;
+create policy "records insert by role" on public.records for insert to authenticated with check (
+  public.is_admin()
+  or (kind='orders' and owner_id=(select auth.uid()) and payload->>'status'='Da approvare'
+    and payload->>'customer' = (select coalesce(nullif(full_name,''),email) from public.profiles where id=(select auth.uid()))
+    and public.is_approved_customer())
+);
+drop policy if exists "records admin update" on public.records;
+create policy "records admin update" on public.records for update to authenticated using (public.is_admin()) with check (public.is_admin());
+drop policy if exists "records admin delete" on public.records;
+create policy "records admin delete" on public.records for delete to authenticated using (public.is_admin());
+
+-- L'account iniziale diventa amministratore solo dopo conferma email e accesso.
+-- Eseguire manualmente sostituendo l'indirizzo con quello del titolare:
+-- update public.profiles set role='admin', approval_status='approved' where email='tuo-indirizzo@example.it';
