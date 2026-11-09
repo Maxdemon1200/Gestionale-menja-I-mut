@@ -123,3 +123,24 @@ begin
 end; $$;
 revoke all on function public.allocate_customer_code() from public, anon;
 grant execute on function public.allocate_customer_code() to authenticated;
+
+
+-- Chat privata cliente-titolare. Applicare lo schema anche ai progetti già avviati.
+create table if not exists public.chat_messages (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid not null references public.profiles(id) on delete cascade,
+  sender_id uuid not null references auth.users(id) on delete cascade,
+  sender_role text not null check (sender_role in ('customer','admin')),
+  body text not null check (length(trim(body)) between 1 and 2000),
+  created_at timestamptz not null default now()
+);
+create index if not exists chat_messages_customer_created_idx on public.chat_messages(customer_id, created_at);
+alter table public.chat_messages enable row level security;
+revoke all on public.chat_messages from anon;
+grant select, insert on public.chat_messages to authenticated;
+drop policy if exists "chat participants read messages" on public.chat_messages;
+create policy "chat participants read messages" on public.chat_messages for select to authenticated
+using ((customer_id=(select auth.uid()) and public.is_approved_customer()) or public.is_admin());
+drop policy if exists "chat participants send messages" on public.chat_messages;
+create policy "chat participants send messages" on public.chat_messages for insert to authenticated
+with check (sender_id=(select auth.uid()) and ((sender_role='customer' and customer_id=(select auth.uid()) and public.is_approved_customer()) or (sender_role='admin' and public.is_admin())));
