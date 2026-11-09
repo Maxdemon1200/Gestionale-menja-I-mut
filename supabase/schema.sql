@@ -144,3 +144,17 @@ using ((customer_id=(select auth.uid()) and public.is_approved_customer()) or pu
 drop policy if exists "chat participants send messages" on public.chat_messages;
 create policy "chat participants send messages" on public.chat_messages for insert to authenticated
 with check (sender_id=(select auth.uid()) and ((sender_role='customer' and customer_id=(select auth.uid()) and public.is_approved_customer()) or (sender_role='admin' and public.is_admin())));
+
+
+-- Permetti lo storico ordini solo se il codice cliente corrisponde al profilo autenticato.
+drop policy if exists "records read by role" on public.records;
+create policy "records read by role" on public.records for select to authenticated using (
+  public.is_admin()
+  or (owner_id=(select auth.uid()) and public.is_approved_customer())
+  or (kind='orders' and public.is_approved_customer() and payload->>'customer_code'=(select customer_code from public.profiles where id=(select auth.uid())))
+  or (kind='products' and public.is_approved_customer())
+  or (kind='pricelists' and public.is_approved_customer() and (
+    (nullif(payload->>'customer','') is not null and payload->>'customer'=(select coalesce(nullif(full_name,''),email) from public.profiles where id=(select auth.uid())))
+    or (nullif(payload->>'customer','') is null and payload->>'category'=(select category from public.profiles where id=(select auth.uid())))
+  ))
+);
