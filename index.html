@@ -65,8 +65,19 @@ body.admin-mode .bottomnav button.active{color:#e4c47c}
 @media(max-width:1000px){body.admin-mode .app{grid-template-columns:220px minmax(0,1fr)}}
 @media(max-width:700px){body.admin-mode .app{display:block}body.admin-mode .content{padding:22px 15px 96px}body.admin-mode .top{height:62px;padding:0 14px}body.admin-mode .top .btn{padding:8px 9px;font-size:12px}body.admin-mode .head{gap:10px;margin-bottom:20px}body.admin-mode .head h1{font-size:24px}body.admin-mode .cards{gap:10px}body.admin-mode .card{padding:15px}body.admin-mode .metric{font-size:25px}body.admin-mode .box{padding:16px}body.admin-mode .toolbar{align-items:stretch;flex-wrap:wrap}body.admin-mode .toolbar .field{max-width:none;flex:1 1 100%}body.admin-mode .bottomnav button{padding:10px 4px}}
 
+
+/* Avvisi in tempo reale per il proprietario */
+.owner-notice{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:18px 30px 0;padding:16px 20px;background:#ffeb00;color:#171500;border:2px solid #fff36a;border-radius:13px;box-shadow:0 0 0 3px #ffeb0030,0 8px 28px #0005;animation:ownerNoticePulse 2.4s ease-in-out infinite}
+.owner-notice[hidden]{display:none}
+.owner-notice strong{display:block;font-size:14px;font-weight:900;letter-spacing:.045em}
+.owner-notice small{display:block;margin-top:3px;font-size:13px;font-weight:650;color:#343000}
+.owner-notice button{flex:none;border:1px solid #282400;border-radius:9px;background:#191700;color:#fff9c7;padding:10px 15px;font-weight:800}
+.owner-notice button:hover{background:#383100}
+@keyframes ownerNoticePulse{0%,100%{box-shadow:0 0 0 3px #ffeb0030,0 8px 28px #0005}50%{box-shadow:0 0 0 6px #ffeb0045,0 8px 32px #0007}}
+@media(max-width:700px){.owner-notice{align-items:stretch;flex-direction:column;margin:12px 12px 0;padding:14px}.owner-notice button{width:100%}}
+
 </style></head>
-<body><div class="app"><aside class="side"><div class="brand"><img src="menjaimut.jpg" alt="Logo Menja i Mut"><div><b>MENJA I MUT</b><small>PIZZA LAB</small></div></div><div class="nav" id="nav"></div><div class="sidefoot" id="sessionInfo">Gestionale online</div></aside><main class="main"><header class="top"><div><b>MENJA I MUT</b> <small>GESTIONALE</small></div><div class="actions"><button class="btn" onclick="importBackup()">Importa backup</button><button class="btn" onclick="exportData()">Esporta dati</button><button class="btn" id="signoutButton" onclick="signOut()" hidden>Esci</button></div></header><section class="content" id="view"></section></main></div><nav class="bottomnav" id="bottom"></nav><div id="modal"></div>
+<body><div class="app"><aside class="side"><div class="brand"><img src="menjaimut.jpg" alt="Logo Menja i Mut"><div><b>MENJA I MUT</b><small>PIZZA LAB</small></div></div><div class="nav" id="nav"></div><div class="sidefoot" id="sessionInfo">Gestionale online</div></aside><main class="main"><header class="top"><div><b>MENJA I MUT</b> <small>GESTIONALE</small></div><div class="actions"><button class="btn" onclick="importBackup()">Importa backup</button><button class="btn" onclick="exportData()">Esporta dati</button><button class="btn" id="signoutButton" onclick="signOut()" hidden>Esci</button></div></header><div id="ownerNotice" class="owner-notice" hidden></div><section class="content" id="view"></section></main></div><nav class="bottomnav" id="bottom"></nav><div id="modal"></div>
 <script>
 const sections=[['OPERATIVITÀ',['Dashboard','Ordini','Prenotazioni','Clienti']],['CATALOGO',['Prodotti e ricette','Ricette','Listini']],['PRODUZIONE',['Produzione','Lotti produzione','Magazzino']],['CLIENTI',['Fidelity','CRM']],['AMMINISTRAZIONE',['Finanza','Fatture','Statistiche','Impostazioni']]];
 const icons={'Dashboard':'▦','Ordini':'▤','Prenotazioni':'▣','Clienti':'♙','Prodotti e ricette':'◉','Ricette':'◉','Listini':'€','Produzione':'⚙','Lotti produzione':'▧','Magazzino':'▣','Fidelity':'✧','CRM':'♡','Finanza':'◈','Fatture':'▤','Statistiche':'⌁','Impostazioni':'⚙'};
