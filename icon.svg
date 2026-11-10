@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#101714"/>
+  <circle cx="256" cy="256" r="190" fill="#19251e" stroke="#d9b66d" stroke-width="14"/>
+  <circle cx="256" cy="256" r="160" fill="none" stroke="#d9b66d" stroke-width="3" opacity=".5"/>
+  <text x="256" y="245" text-anchor="middle" font-family="Georgia,serif" font-size="116" font-weight="bold" fill="#f5f0e5">M</text>
+  <path d="M142 300 Q256 345 370 300" fill="none" stroke="#d9b66d" stroke-width="10" stroke-linecap="round"/>
+  <text x="256" y="382" text-anchor="middle" font-family="Arial,sans-serif" font-size="34" font-weight="bold" letter-spacing="7" fill="#d9b66d">PIZZA LAB</text>
+</svg>
