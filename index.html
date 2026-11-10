@@ -7,6 +7,64 @@
 :root{--bg:#101714;--panel:#19221d;--panel2:#202c25;--line:#34443a;--gold:#d7b568;--cream:#f4edda;--muted:#a8b1a8;--green:#6f9676;--red:#bd665c}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--cream);font:15px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}.app{display:grid;grid-template-columns:250px 1fr;min-height:100vh}.side{background:#131b17;border-right:1px solid var(--line);padding:22px 14px;display:flex;flex-direction:column;gap:18px}.brand{display:flex;align-items:center;gap:11px;padding:4px 8px 17px;border-bottom:1px solid var(--line)}.brand img{width:55px;height:55px;object-fit:cover;border-radius:50%;border:1px solid var(--gold)}.brand b{display:block;letter-spacing:.13em;font-size:13px}.brand small{color:var(--gold);letter-spacing:.12em}.nav{display:grid;gap:4px;overflow:auto}.nav button{border:0;background:transparent;color:var(--muted);text-align:left;border-radius:9px;padding:11px 12px}.nav button:hover,.nav button.active{background:var(--panel2);color:var(--cream)}.nav button.active{box-shadow:inset 3px 0 var(--gold)}.nav-label{color:#78847a;font-size:10px;letter-spacing:.15em;padding:12px 12px 4px}.sidefoot{margin-top:auto;color:var(--muted);font-size:12px;padding:10px}.main{min-width:0}.top{height:68px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 30px;position:sticky;top:0;background:#101714ee;backdrop-filter:blur(10px);z-index:2}.top small{color:var(--muted)}.content{max-width:1400px;margin:auto;padding:30px}.head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px}.head h1{font-size:28px;margin:0 0 5px}.muted{color:var(--muted)}.btn{border:1px solid var(--line);background:var(--panel2);color:var(--cream);padding:10px 14px;border-radius:9px}.btn.gold{background:var(--gold);color:#1d1a11;border-color:var(--gold);font-weight:700}.btn:hover{filter:brightness(1.1)}.grid{display:grid;gap:16px}.cards{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:18px}.card,.box{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:19px}.card small{color:var(--muted)}.metric{font-size:28px;font-weight:700;margin:9px 0 2px}.notice{border:1px solid #695b37;background:#29251a;color:#ead9a8;border-radius:11px;padding:14px 16px;margin-bottom:18px}.two{grid-template-columns:1.25fr 1fr}.box h2{font-size:17px;margin:0 0 16px}.empty{color:var(--muted);text-align:center;padding:35px 12px}.tablewrap{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:680px}.table th,.table td{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line)}.table th{font-size:12px;color:var(--muted);font-weight:500}.badge{display:inline-block;border:1px solid #6d6041;color:#e5d49d;border-radius:20px;padding:3px 9px;font-size:12px}.toolbar{display:flex;gap:10px;align-items:center;margin-bottom:14px}.toolbar input{max-width:320px}.field,select,textarea{width:100%;background:#111915;border:1px solid var(--line);color:var(--cream);padding:10px 12px;border-radius:8px}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.formgrid label{font-size:13px;color:var(--muted);display:grid;gap:6px}.formgrid .wide{grid-column:1/-1}.modal{position:fixed;inset:0;background:#0009;display:grid;place-items:center;padding:20px;z-index:5}.dialog{width:min(620px,100%);max-height:90vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px}.dialog h2{margin:0 0 18px}.dialogfoot{display:flex;justify-content:flex-end;gap:9px;margin-top:18px}.actions{display:flex;gap:7px}.smallbtn{background:none;color:var(--gold);border:0;padding:4px}.pillrow{display:flex;gap:8px;flex-wrap:wrap}.producttile{padding:12px;border:1px solid var(--line);border-radius:9px;background:#141c18}.bottomnav{display:none}
 @media(max-width:1000px){.app{grid-template-columns:210px 1fr}.cards{grid-template-columns:repeat(2,1fr)}.content{padding:22px}}
 @media(max-width:700px){.app{display:block}.side{display:none}.top{padding:0 17px;height:58px}.content{padding:20px 15px 90px}.head h1{font-size:24px}.cards{gap:10px}.card{padding:14px}.metric{font-size:24px}.two{grid-template-columns:1fr}.bottomnav{display:flex;position:fixed;bottom:0;left:0;right:0;background:#131b17;border-top:1px solid var(--line);overflow:auto;z-index:3}.bottomnav button{min-width:78px;flex:1;background:transparent;border:0;color:var(--muted);padding:9px 5px;font-size:11px}.bottomnav button.active{color:var(--gold)}.bottomnav span{display:block;font-size:17px}.head{align-items:center}.head .btn{padding:9px;font-size:13px}}
+
+/* MENJA I MUT · interfaccia premium riservata al proprietario */
+body.admin-mode{--bg:#0c1110;--panel:#171f1c;--panel2:#202b26;--line:#34443b;--gold:#d9b66d;--cream:#f5f0e5;--muted:#a5afa7;background:radial-gradient(ellipse at 80% 0%,#24352b 0,transparent 34%),var(--bg)}
+body.admin-mode .app{grid-template-columns:270px minmax(0,1fr)}
+body.admin-mode .side{background:linear-gradient(180deg,#151e19,#101613);border-right:1px solid #39483e;padding:25px 16px;gap:22px;box-shadow:12px 0 35px #0002}
+body.admin-mode .brand{padding:7px 9px 21px;border-bottom:1px solid #3b493e;gap:13px}
+body.admin-mode .brand img{width:59px;height:59px;border:2px solid var(--gold);box-shadow:0 0 0 4px #d9b66d18,0 7px 20px #0006}
+body.admin-mode .brand b{font-size:13px;letter-spacing:.18em;color:#fff8e9}
+body.admin-mode .brand small{font-size:10px;letter-spacing:.2em}
+body.admin-mode .nav{gap:5px}
+body.admin-mode .nav-label{padding:15px 12px 6px;color:#c5a96c;font-weight:700;letter-spacing:.19em;font-size:9px}
+body.admin-mode .nav button{position:relative;border:1px solid transparent;border-radius:10px;padding:11px 13px;color:#b2bdb4;transition:background .18s,border-color .18s,transform .18s}
+body.admin-mode .nav button:hover{background:#ffffff09;border-color:#ffffff12;color:#fff;transform:translateX(2px)}
+body.admin-mode .nav button.active{background:linear-gradient(100deg,#d9b66d20,#d9b66d08);border-color:#d9b66d40;color:#f5e5bd;box-shadow:inset 3px 0 var(--gold),0 5px 18px #0002}
+body.admin-mode .sidefoot{border-top:1px solid #344239;padding:15px 10px 5px;color:#aeb8af;line-height:1.7}
+body.admin-mode .top{height:74px;padding:0 clamp(18px,3vw,42px);background:#111915ef;border-bottom:1px solid #34443a;box-shadow:0 7px 24px #0002}
+body.admin-mode .top>div:first-child b{letter-spacing:.17em;color:#fff7e7}
+body.admin-mode .top>div:first-child small{color:var(--gold);letter-spacing:.13em}
+body.admin-mode .content{max-width:1540px;padding:clamp(22px,3vw,42px)}
+body.admin-mode .head{align-items:center;margin-bottom:27px}
+body.admin-mode .head h1{font-size:clamp(25px,2.2vw,32px);letter-spacing:-.035em;color:#fff8e9}
+body.admin-mode .head .muted{font-size:13px;color:#aab5ac}
+body.admin-mode .btn{border-color:#435247;background:linear-gradient(180deg,#26332c,#1d2822);border-radius:10px;padding:10px 15px;box-shadow:0 3px 10px #0002;transition:transform .18s,filter .18s,border-color .18s}
+body.admin-mode .btn:hover{filter:brightness(1.16);transform:translateY(-1px);border-color:#b89a5d}
+body.admin-mode .btn.gold{background:linear-gradient(135deg,#e3c783,#cba65b);color:#211b10;border-color:#e0c17c;box-shadow:0 5px 16px #caa85b25;font-weight:750}
+body.admin-mode .card,body.admin-mode .box{background:linear-gradient(145deg,#1b2620,#151d19 78%);border:1px solid #35463b;border-radius:15px;box-shadow:0 10px 28px #00000020}
+body.admin-mode .card{position:relative;overflow:hidden;padding:21px}
+body.admin-mode .card:after{content:"";position:absolute;width:100px;height:100px;right:-48px;top:-50px;border:1px solid #d9b66d24;border-radius:50%;box-shadow:0 0 0 12px #d9b66d08,0 0 0 25px #d9b66d05;pointer-events:none}
+body.admin-mode .card small{color:#aeb9af;font-size:12px}
+body.admin-mode .metric{font-size:31px;letter-spacing:-.04em;color:#f4dfad;margin:12px 0 4px}
+body.admin-mode .box{padding:22px}
+body.admin-mode .box h2{font-size:16px;letter-spacing:.01em;color:#f4ead5;margin-bottom:18px}
+body.admin-mode .notice{border-color:#8b7445;background:linear-gradient(110deg,#3a301d,#28251b);color:#f1dfb4;border-radius:12px;box-shadow:inset 3px 0 #d9b66d}
+body.admin-mode .tablewrap{border:1px solid #34443a;border-radius:11px;overflow:auto}
+body.admin-mode .table{border-collapse:separate;border-spacing:0;min-width:680px}
+body.admin-mode .table th{background:#202b25;color:#d1bd8d;text-transform:uppercase;letter-spacing:.09em;font-size:10px;font-weight:700;padding:14px 13px}
+body.admin-mode .table td{padding:13px;border-bottom:1px solid #2d3a32;color:#e7e4d9}
+body.admin-mode .table tbody tr{background:#18211c;transition:background .15s}
+body.admin-mode .table tbody tr:nth-child(even){background:#1b2520}
+body.admin-mode .table tbody tr:hover{background:#26352c}
+body.admin-mode .table tbody tr:last-child td{border-bottom:0}
+body.admin-mode .badge{background:#d9b66d12;border-color:#b99b5c80;color:#efd99f;padding:4px 10px;font-weight:600}
+body.admin-mode .toolbar{gap:13px;margin-bottom:17px}
+body.admin-mode .toolbar .field{max-width:360px}
+body.admin-mode .field,body.admin-mode select,body.admin-mode textarea{background:#101713;border-color:#3b4b40;border-radius:9px;color:#f3eddf;outline:none;transition:border-color .15s,box-shadow .15s}
+body.admin-mode .field:focus,body.admin-mode select:focus,body.admin-mode textarea:focus{border-color:#c7a65f;box-shadow:0 0 0 3px #d9b66d18}
+body.admin-mode .formgrid label{color:#c4cbbf;font-weight:550;gap:8px}
+body.admin-mode .empty{padding:42px 14px;color:#aab5ac}
+body.admin-mode .smallbtn{font-weight:650}
+body.admin-mode .dialog{background:linear-gradient(145deg,#1c2821,#141c18);border-color:#59684f;border-radius:17px;box-shadow:0 25px 80px #0009}
+body.admin-mode .dialog h2{color:#f7e9c7;font-size:21px}
+body.admin-mode .dialogfoot{padding-top:14px;border-top:1px solid #34443a}
+body.admin-mode .producttile{background:#121a15;border-color:#39483e;border-radius:11px}
+body.admin-mode .bottomnav{background:#121a15;border-top-color:#39483e}
+body.admin-mode .bottomnav button.active{color:#e4c47c}
+@media(max-width:1000px){body.admin-mode .app{grid-template-columns:220px minmax(0,1fr)}}
+@media(max-width:700px){body.admin-mode .app{display:block}body.admin-mode .content{padding:22px 15px 96px}body.admin-mode .top{height:62px;padding:0 14px}body.admin-mode .top .btn{padding:8px 9px;font-size:12px}body.admin-mode .head{gap:10px;margin-bottom:20px}body.admin-mode .head h1{font-size:24px}body.admin-mode .cards{gap:10px}body.admin-mode .card{padding:15px}body.admin-mode .metric{font-size:25px}body.admin-mode .box{padding:16px}body.admin-mode .toolbar{align-items:stretch;flex-wrap:wrap}body.admin-mode .toolbar .field{max-width:none;flex:1 1 100%}body.admin-mode .bottomnav button{padding:10px 4px}}
+
 </style></head>
 <body><div class="app"><aside class="side"><div class="brand"><img src="menjaimut.jpg" alt="Logo Menja i Mut"><div><b>MENJA I MUT</b><small>PIZZA LAB</small></div></div><div class="nav" id="nav"></div><div class="sidefoot" id="sessionInfo">Gestionale online</div></aside><main class="main"><header class="top"><div><b>MENJA I MUT</b> <small>GESTIONALE</small></div><div class="actions"><button class="btn" onclick="importBackup()">Importa backup</button><button class="btn" onclick="exportData()">Esporta dati</button><button class="btn" id="signoutButton" onclick="signOut()" hidden>Esci</button></div></header><section class="content" id="view"></section></main></div><nav class="bottomnav" id="bottom"></nav><div id="modal"></div>
 <script>
