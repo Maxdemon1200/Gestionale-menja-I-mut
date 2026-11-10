@@ -1,0 +1,21 @@
+{
+  "id": "./",
+  "name": "Menja i Mut Gestionale",
+  "short_name": "Menja i Mut",
+  "description": "Gestionale online Menja i Mut Pizza Lab",
+  "lang": "it-IT",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#101714",
+  "theme_color": "#101714",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
