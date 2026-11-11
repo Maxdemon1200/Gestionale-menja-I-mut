@@ -112,14 +112,14 @@ function adminCustomerOrders(customer){const code=String(customer?.code||custome
 
 function adminOrderEditor(order,customer){
  const o=order||{},date=String(o.pickup||'').split('T')[0],statuses=['Da approvare','Confermato','In produzione','Pronto per il ritiro','Ritirato','Rifiutato'];
- const lotOptions=db.lots.map(l=>'<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="lot_ids" value="'+esc(l.id)+'" '+((o.lot_ids||[]).includes(l.id)?'checked':'')+'><span>'+esc(l.code||'Lotto')+' · '+esc(l.product||'')+'</span></label>').join('');
- return '<section class="box" style="margin-bottom:16px"><h2>'+(order?'Modifica ordine '+esc(o.code||''):'Aggiungi ordine')+'</h2><form class="formgrid" onsubmit="saveAdminCustomerOrder(event)" data-customer-id="'+esc(customer.id)+'"><label>Giorno di ritiro<input class="field" type="date" name="pickup" value="'+esc(date)+'" required></label><label>Importo totale (€)<input class="field" type="number" name="total" min="0" step="0.01" value="'+esc(o.total??'')+'"></label><label class="wide">Prodotti e quantità<textarea class="field" name="items" rows="4" required placeholder="Es. 2 Margherite, 1 teglia...">'+esc(o.items||'')+'</textarea></label><label class="wide">Note<textarea class="field" name="notes" rows="2" placeholder="Note per la preparazione o il ritiro">'+esc(o.notes||'')+'</textarea></label><label class="wide">Stato ordine<select class="field" name="status">'+statuses.map(st=>'<option value="'+esc(st)+'" '+(String(o.status||'Da approvare')===st?'selected':'')+'>'+esc(st)+'</option>').join('')+'</select></label><div class="wide"><strong>Lotti di produzione associati</strong><div class="muted">Seleziona uno o più lotti utilizzati per preparare questo ordine.</div><div style="display:grid;gap:7px;margin-top:8px">'+(lotOptions||'<span class="muted">Crea prima un lotto di produzione.</span>')+'</div></div><div class="wide dialogfoot"><button type="button" class="btn" onclick="cancelAdminOrderEdit()">Annulla</button><button class="btn gold" type="submit">Salva ordine</button></div></form></section>';
+
+ return '<section class="box" style="margin-bottom:16px"><h2>'+(order?'Modifica ordine '+esc(o.code||''):'Aggiungi ordine')+'</h2><form class="formgrid" onsubmit="saveAdminCustomerOrder(event)" data-customer-id="'+esc(customer.id)+'"><label>Giorno di ritiro<input class="field" type="date" name="pickup" value="'+esc(date)+'" required></label><label>Importo totale (€)<input class="field" type="number" name="total" min="0" step="0.01" value="'+esc(o.total??'')+'"></label><label class="wide">Prodotti e quantità<textarea class="field" name="items" rows="4" required placeholder="Es. 2 Margherite, 1 teglia...">'+esc(o.items||'')+'</textarea></label><label class="wide">Note<textarea class="field" name="notes" rows="2" placeholder="Note per la preparazione o il ritiro">'+esc(o.notes||'')+'</textarea></label><label class="wide">Stato ordine<select class="field" name="status">'+statuses.map(st=>'<option value="'+esc(st)+'" '+(String(o.status||'Da approvare')===st?'selected':'')+'>'+esc(st)+'</option>').join('')+'</select></label><div class="wide notice">Il magazzino scala automaticamente le quantità quando l’ordine viene segnato come “Ritirato”. Le basi vengono attribuite ai lotti più vecchi disponibili (FIFO), senza selezionare il lotto a mano.</div><div class="wide dialogfoot"><button type="button" class="btn" onclick="cancelAdminOrderEdit()">Annulla</button><button class="btn gold" type="submit">Salva ordine</button></div></form></section>';
 }
 function adminCustomerDetailPage(){const customer=db.customers.find(c=>c.id===selectedAdminCustomerId);if(!customer)return '<div class="box"><h2>Cliente non trovato</h2><button class="btn" onclick="navigate(\'Clienti\')">Torna ai clienti</button></div>';const orders=adminCustomerOrders(customer).slice().sort((a,b)=>String(b.pickup||'').localeCompare(String(a.pickup||'')));const editing=editingAdminOrderId&&editingAdminOrderId!=='new'?orders.find(o=>o.id===editingAdminOrderId):null;const rows=orders.map(o=>[esc(o.code||'—'),esc(formatCustomerPickupDate(o.pickup)),esc(o.items||'—'),o.total!==undefined&&o.total!==''?'€ '+esc(o.total):'Da definire',`<span class="badge">${esc(o.status||'Da approvare')}</span>`,`<button class="smallbtn" onclick="editAdminCustomerOrder('${o.id}')">Modifica</button>`]);return `<div class="head"><div><h1>${esc(customer.name||customer.email||'Cliente')}</h1><div class="muted">${esc(customer.email||'')} · Codice ${esc(customer.code||'—')} · ${esc(customer.category||'')}</div></div><div class="actions"><button class="btn" onclick="navigate('Clienti')">← Clienti</button><button class="btn gold" onclick="startAdminOrderCreate()">＋ Aggiungi ordine</button></div></div>${adminCustomerPriceListBlock(customer)}${editing?adminOrderEditor(editing,customer):''}${editingAdminOrderId==='new'?adminOrderEditor(null,customer):''}<div class="box"><h2>Storico ordini · ${orders.length}</h2>${orders.length?table(['Ordine','Ritiro','Prodotti e quantità','Totale','Stato','Azioni'],rows):'<div class="empty">Nessun ordine registrato per questo cliente.</div>'}</div>`}
 function startAdminOrderCreate(){if(activeProfile?.role!=='admin')return;editingAdminOrderId='new';render()}
 function editAdminCustomerOrder(id){if(activeProfile?.role!=='admin')return;editingAdminOrderId=id;render()}
 function cancelAdminOrderEdit(){editingAdminOrderId=null;render()}
-async function saveAdminCustomerOrder(event){event.preventDefault();if(activeProfile?.role!=='admin')return;const form=event.currentTarget;const customer=db.customers.find(c=>c.id===form.dataset.customerId);if(!customer){showError(new Error('Cliente non trovato'));return}const formData=new FormData(form);const values=Object.fromEntries(formData);const previous=editingAdminOrderId&&editingAdminOrderId!=='new'?db.orders.find(o=>o.id===editingAdminOrderId):null;const order={...(previous||{}),id:previous?.id||crypto.randomUUID(),code:previous?.code||'ORD-'+String(Date.now()).slice(-6),customer:customer.name||customer.email||'',customer_id:customer.isProfile?customer.id:(previous?.customer_id||null),customer_email:customer.email||'',customer_code:customer.code||customer.fidelity_code||'',pickup:values.pickup,items:String(values.items||'').trim(),total:values.total===''?'':Number(values.total),notes:String(values.notes||'').trim(),status:values.status||'Da approvare',lot_ids:formData.getAll('lot_ids').map(String),created_at:previous?.created_at||new Date().toISOString(),updated_at:new Date().toISOString(),created_by:'admin'};try{window.__menjaStage=previous?'aggiornamento ordine cliente':'creazione ordine cliente';await persistRecord('orders',order);await loadOnlineData();editingAdminOrderId=null;render()}catch(error){showError(error)}}
+async function saveAdminCustomerOrder(event){event.preventDefault();if(activeProfile?.role!=='admin')return;const form=event.currentTarget;const customer=db.customers.find(c=>c.id===form.dataset.customerId);if(!customer){showError(new Error('Cliente non trovato'));return}const formData=new FormData(form);const values=Object.fromEntries(formData);const previous=editingAdminOrderId&&editingAdminOrderId!=='new'?db.orders.find(o=>o.id===editingAdminOrderId):null;const order={...(previous||{}),id:previous?.id||crypto.randomUUID(),code:previous?.code||'ORD-'+String(Date.now()).slice(-6),customer:customer.name||customer.email||'',customer_id:customer.isProfile?customer.id:(previous?.customer_id||null),customer_email:customer.email||'',customer_code:customer.code||customer.fidelity_code||'',pickup:values.pickup,items:String(values.items||'').trim(),total:values.total===''?'':Number(values.total),notes:String(values.notes||'').trim(),status:values.status||'Da approvare',lot_ids:previous?.lot_ids||[],created_at:previous?.created_at||new Date().toISOString(),updated_at:new Date().toISOString(),created_by:'admin'};try{window.__menjaStage=previous?'aggiornamento ordine cliente':'creazione ordine cliente';await persistRecord('orders',order);await loadOnlineData();editingAdminOrderId=null;render()}catch(error){showError(error)}}
 function customerLoyaltyCard(){const name=activeProfile?.full_name||activeProfile?.email||'Cliente Menja i Mut';const code=activeProfile?.customer_code||'In assegnazione';const points=Number(activeProfile?.fidelity_points)||0;return '<section class="loyalty-card"><div class="loyalty-card-top"><div class="loyalty-brand"><img src="menjaimut.jpg" alt="Menja i Mut"><div><strong>MENJA I MUT</strong><small>PIZZA LAB · FIDELITY CLUB</small></div></div><span class="loyalty-chip">CLIENTE</span></div><div class="loyalty-card-middle"><small>TESSERA PERSONALE</small><h2>'+esc(name)+'</h2><div class="loyalty-code-label">CODICE CLIENTE</div><div class="loyalty-code">'+esc(code)+'</div></div><div class="loyalty-card-bottom"><div><small>I TUOI PUNTI</small><strong>'+points+'</strong></div><div class="loyalty-card-mark">M<span>✦</span>M</div></div></section>'}
 
 let selectedPriceListId=null,priceListDraft=null;
@@ -217,15 +217,40 @@ function menjaOrderLineQuantities(order,product){
  });
  return total;
 }
-function menjaLotSoldQuantity(lot){
+function menjaLotSoldAllocations(){
  const completed=['Ritirato','Consegnato','Completato'];
- return db.orders.filter(order=>completed.includes(String(order.status||''))&&(order.lot_ids||[]).some(id=>String(id)===String(lot.id)||String(id)===String(lot.code))).reduce((sum,order)=>sum+menjaOrderLineQuantities(order,lot.product),0);
+ const soldOrders=db.orders.filter(order=>completed.includes(String(order.status||''))).slice().sort((a,b)=>String(a.updated_at||a.created_at||a.pickup||'').localeCompare(String(b.updated_at||b.created_at||b.pickup||'')));
+ const lotsByProduct=new Map();
+ db.lots.forEach(lot=>{
+  const key=String(lot.product||'').trim().toLocaleLowerCase('it-IT');
+  if(!key)return;
+  if(!lotsByProduct.has(key))lotsByProduct.set(key,[]);
+  lotsByProduct.get(key).push(lot);
+ });
+ const allocations=new Map();
+ for(const [key,lots] of lotsByProduct){
+  lots.sort((a,b)=>String(a.production_date||a.date||a.created_at||'').localeCompare(String(b.production_date||b.date||b.created_at||'')));
+  const remaining=lots.map(lot=>Math.max(0,Number(lot.qty)||0));
+  for(const order of soldOrders){
+   const quantity=menjaOrderLineQuantities(order,key);
+   let pending=quantity;
+   for(let i=0;i<lots.length&&pending>0;i++){
+    const used=Math.min(remaining[i],pending);
+    if(used>0){allocations.set(String(lots[i].id),(allocations.get(String(lots[i].id))||0)+used);remaining[i]-=used;pending-=used}
+   }
+  }
+ }
+ return allocations;
+}
+function menjaLotSoldQuantity(lot,allocations){
+ return allocations.get(String(lot.id))||0;
 }
 function menjaWarehousePage(){
  if(activeProfile?.role!=='admin')return '<div class="box">Accesso non consentito.</div>';
  const lots=db.lots.slice().sort((a,b)=>String(b.production_date||b.date||b.created_at||'').localeCompare(String(a.production_date||a.date||a.created_at||'')));
+ const soldAllocations=menjaLotSoldAllocations();
  const rows=lots.map(lot=>{
-  const produced=Math.max(0,Number(lot.qty)||0),sold=Math.min(produced,menjaLotSoldQuantity(lot)),stock=Math.max(0,produced-sold);
+  const produced=Math.max(0,Number(lot.qty)||0),sold=Math.min(produced,menjaLotSoldQuantity(lot,soldAllocations)),stock=Math.max(0,produced-sold);
   const search=[lot.code,lot.product,lot.production_date,lot.date,lot.status,lot.operator].join(' ').toLocaleLowerCase('it-IT');
   return '<tr class="warehouse-row" data-search="'+esc(search)+'"><td>'+esc(lot.code||'—')+'</td><td>'+esc(lot.product||'—')+'</td><td>'+esc(lot.production_date||lot.date||'—')+'</td><td>'+produced.toLocaleString('it-IT')+' '+esc(lot.unit||'pezzi')+'</td><td>'+sold.toLocaleString('it-IT')+' '+esc(lot.unit||'pezzi')+'</td><td><strong>'+stock.toLocaleString('it-IT')+' '+esc(lot.unit||'pezzi')+'</strong></td><td><span class="badge">'+esc(lot.status||'Prodotto')+'</span></td></tr>';
  }).join('');
