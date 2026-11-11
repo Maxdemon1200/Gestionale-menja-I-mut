@@ -1,11 +1,11 @@
-const CACHE_NAME = "menjaimut-pwa-v4";
+const CACHE_NAME = "menjaimut-pwa-v5";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./icon.svg",
   "./config.js?v=2",
-  "./app-online.js?v=6",
+  "./app-online.js?v=7",
   "./menjaimut.jpg"
 ];
 
