@@ -23,10 +23,67 @@ async function refreshOwnerNotice(){
  el.innerHTML='<div><strong>🔔 '+pending.length+' NUOV'+(pending.length===1?'A':'E')+' RICHIEST'+(pending.length===1?'A':'E')+' DI REGISTRAZIONE</strong><small>'+preview+extra+' · Da approvare nella sezione Clienti</small></div><button type="button" onclick="openNewCustomerRequests()">VEDI NUOVI CLIENTI →</button>';
  el.hidden=false;
 }
+let ownerKnownOrderIds=null;
+function syncPendingOrderBadge(){
+ const count=activeProfile?.role==='admin'?db.orders.filter(o=>o.status==='Da approvare').length:0;
+ window.__menjaPendingOrderCount=count;
+ if(typeof navHTML==='function')navHTML();
+ const el=document.getElementById('ownerOrderNotice');
+ if(el&&!count){el.hidden=true;el.innerHTML=''}
+}
+function dismissOwnerOrderNotice(){
+ const el=document.getElementById('ownerOrderNotice');
+ if(el){el.hidden=true;el.innerHTML=''}
+}
+function openNotifiedOrder(id){
+ dismissOwnerOrderNotice();
+ openAdminOrder(id);
+}
+async function enableOrderBrowserNotifications(){
+ if(!('Notification' in window)){alert('Le notifiche desktop non sono supportate da questo browser.');return}
+ try{
+  const permission=await Notification.requestPermission();
+  if(permission==='granted')alert('Notifiche desktop attivate. Ti avviserò quando arriva un nuovo ordine.');
+  else alert('Permesso notifiche non concesso. Continuerai comunque a vedere gli avvisi nel gestionale.');
+ }catch(e){console.error('Permesso notifiche:',e)}
+}
+function showNewOrderNotice(newOrders){
+ const el=document.getElementById('ownerOrderNotice');if(!el||!newOrders.length)return;
+ const first=newOrders[0];
+ const title=newOrders.length===1?'È ARRIVATO UN NUOVO ORDINE':'SONO ARRIVATI '+newOrders.length+' NUOVI ORDINI';
+ const detail=newOrders.length===1?(first.customer||'Nuovo cliente')+' · '+(first.code||'Ordine'):'Controlla le nuove richieste dei clienti';
+ el.innerHTML='<div><strong>🔴 '+title+'</strong><small>'+esc(detail)+' · Da approvare</small></div><div class="order-notice-actions"><button type="button" onclick="openNotifiedOrder(\''+first.id+'\')">VEDI ORDINE →</button>'+(('Notification' in window&&Notification.permission!=='granted'&&Notification.permission!=='denied')?'<button type="button" class="order-notice-enable" onclick="enableOrderBrowserNotifications()">Attiva notifiche desktop</button>':'')+'<button type="button" class="order-notice-close" aria-label="Chiudi notifica" onclick="dismissOwnerOrderNotice()">×</button></div>';
+ el.hidden=false;
+ if('Notification' in window&&Notification.permission==='granted'){
+  try{new Notification('Menja i Mut · Nuovo ordine',{body:detail,tag:'menja-order-'+first.id})}catch(e){console.warn('Notifica desktop non disponibile:',e)}
+ }
+}
+async function refreshOwnerOrders(){
+ if(activeProfile?.role!=='admin'||!onlineClient)return;
+ try{
+  const {data,error}=await onlineClient.from('records').select('id,kind,owner_id,payload,created_at').eq('kind','orders');
+  if(error)throw error;
+  const fresh=(data||[]).map(r=>({...r.payload,id:r.id,owner_id:r.owner_id}));
+  const ids=new Set(fresh.map(o=>String(o.id)));
+  const newlyArrived=ownerKnownOrderIds===null?[]:fresh.filter(o=>o.status==='Da approvare'&&!ownerKnownOrderIds.has(String(o.id)));
+  ownerKnownOrderIds=ids;
+  db.orders=fresh;
+  syncPendingOrderBadge();
+  if(newlyArrived.length)showNewOrderNotice(newlyArrived);
+ }catch(e){console.error('Controllo nuovi ordini non riuscito:',e)}
+}
 function startOwnerNoticeMonitoring(){
  if(ownerNoticeTimer){clearInterval(ownerNoticeTimer);ownerNoticeTimer=null}
- if(activeProfile?.role==='admin'){refreshOwnerNotice();ownerNoticeTimer=setInterval(refreshOwnerNotice,20000)}
- else{const el=document.getElementById('ownerNotice');if(el){el.hidden=true;el.innerHTML=''}}
+ ownerKnownOrderIds=null;
+ if(activeProfile?.role==='admin'){
+  refreshOwnerNotice();
+  refreshOwnerOrders();
+  ownerNoticeTimer=setInterval(()=>{refreshOwnerNotice();refreshOwnerOrders()},15000);
+ }else{
+  const el=document.getElementById('ownerNotice');if(el){el.hidden=true;el.innerHTML=''}
+  const orderEl=document.getElementById('ownerOrderNotice');if(orderEl){orderEl.hidden=true;orderEl.innerHTML=''}
+  window.__menjaPendingOrderCount=0;
+ }
 }
 async function openNewCustomerRequests(){
  try{await loadOnlineData();page='Clienti';render();await refreshOwnerNotice()}catch(e){showError(e)}
@@ -75,7 +132,7 @@ async function saveCustomerPriceLists(event){event.preventDefault();if(activePro
 function adminCustomerPriceListBlock(customer){const assigned=Array.isArray(customer.price_list_ids)&&customer.price_list_ids.length?customer.price_list_ids:(customer.price_list_id?[customer.price_list_id]:[]);return '<form class="box" style="margin:16px 0" data-customer-id="'+esc(customer.id)+'" onsubmit="saveCustomerPriceLists(event)"><h2>Listini assegnati</h2><p class="muted">Puoi assegnare più listini allo stesso cliente. Seleziona tutti quelli che deve poter consultare.</p>'+(db.priceLists.length?db.priceLists.map(l=>'<label style="display:flex;align-items:center;gap:10px;margin:10px 0"><input type="checkbox" name="price_list_ids" value="'+esc(l.id)+'" '+(assigned.includes(l.id)?'checked':'')+'><span><strong>'+esc(l.name||'Listino senza nome')+'</strong>'+(l.description?'<small class="muted" style="display:block">'+esc(l.description)+'</small>':'')+'</span></label>').join(''):'<div class="empty">Non hai ancora creato listini. Vai nella sezione Listini per crearne uno.</div>')+'<div class="dialogfoot"><button class="btn gold" type="submit" '+(!db.priceLists.length?'disabled':'')+'>Salva assegnazioni</button></div></form>'}
 function customerPriceListPage(){const ids=Array.isArray(activeProfile?.price_list_ids)&&activeProfile.price_list_ids.length?activeProfile.price_list_ids:(activeProfile?.price_list_id?[activeProfile.price_list_id]:[]);const lists=db.priceLists.filter(x=>ids.includes(x.id));if(!lists.length)return '<div class="head"><div><h1>I miei listini</h1><div class="muted">Prezzi riservati al tuo account</div></div></div><div class="box empty">Non è ancora stato assegnato un listino al tuo account. Contatta il titolare per informazioni.</div>';return '<div class="head"><div><h1>I miei listini</h1><div class="muted">'+lists.length+' listin'+(lists.length===1?'o':'i')+' riservat'+(lists.length===1?'o':'i')+' al tuo account</div></div></div>'+lists.map(list=>{const products=priceListProducts(list);return '<section class="box" style="margin-bottom:16px"><h2>'+esc(list.name||'Listino senza nome')+'</h2>'+(list.description?'<p class="muted">'+esc(list.description)+'</p>':'')+(products.length?table(['Prodotto','Prezzo unitario'],products.map(p=>[esc(p.product),'€ '+Number(p.price||0).toFixed(2)])):'<div class="empty">Il listino non contiene ancora prodotti.</div>')+'</section>'}).join('')}
 let selectedAdminOrderId=null;
-function openAdminOrder(id){selectedAdminOrderId=id;page='Ordini';render()}
+function openAdminOrder(id){dismissOwnerOrderNotice();selectedAdminOrderId=id;page='Ordini';render()}
 function closeAdminOrder(){selectedAdminOrderId=null;render()}
 function adminOrdersPage(){
  const orders=db.orders.slice().reverse();
@@ -104,6 +161,7 @@ async function setOrderStatus(id,status){
   if(error)throw error;
   if(!data)throw new Error('Ordine non aggiornato: il database non ha confermato la modifica. Verifica i permessi e riprova.');
   item.status=status;
+  syncPendingOrderBadge();
   render();
  }catch(e){showError(e)}
 }function importBackup(){if(activeProfile?.role!=='admin'){alert('Importazione consentita solo all’amministratore.');return}let input=document.createElement('input');input.type='file';input.accept='application/json,.json';input.onchange=async()=>{try{let parsed=JSON.parse(await input.files[0].text()),data=parsed.data||parsed;if(parsed.app==='pizzalab'&&Array.isArray(data.customers)){let customers=new Map(data.customers.map(c=>[c.id,c]));for(const c of data.customers){const code=String(c.code||'');await persistRecord('customers',{id:c.id,source_id:c.id,name:c.name,phone:c.phone||'',email:c.email||'',address:c.address||'',notes:c.notes||'',created_at:c.created_at,code,fidelity_code:code,points:0,fidelity_points:0,category:'Altre attività',status:'Attivo'})}for(const p of data.products||[])await persistRecord('products',{id:p.id,source_id:p.id,name:p.name,description:p.description||'',price:p.price,unit:p.unit||'',active:p.active!==false,category:'Importato'});const itemsByOrder=new Map;for(const it of data.order_items||[]){if(!itemsByOrder.has(it.order_id))itemsByOrder.set(it.order_id,[]);itemsByOrder.get(it.order_id).push(it)}for(const o of data.orders||[]){const c=customers.get(o.customer_id),lines=itemsByOrder.get(o.id)||[],total=lines.reduce((sum,it)=>sum+(Number(it.quantity)||0)*(Number(it.unit_price)||0),0);await persistRecord('orders',{id:o.id,source_id:o.id,code:'ST-'+o.id.slice(0,6).toUpperCase(),customer:c?.name||'Cliente non trovato',customer_code:c?.code||'',pickup:o.delivery_date||'',total:total.toFixed(2),status:o.status==='consegnato'?'Ritirato':'Da approvare',notes:o.notes||'',items:lines.map(it=>it.product_name+' × '+it.quantity).join(', '),lines:lines.map(it=>({product:it.product_name,quantity:it.quantity,unit_price:it.unit_price,lot:it.lot||''}))})}await loadOnlineData();render();alert('Backup PizzaLab importato: '+data.customers.length+' clienti con tessera fidelity collegata al codice, '+(data.products||[]).length+' prodotti e '+(data.orders||[]).length+' ordini. Saldo punti iniziale: 0 perché il backup non contiene movimenti fidelity.')}else{for(const b of buckets)for(const item of (data[b]||[])){item.id=item.id||crypto.randomUUID();await persistRecord(onlineKinds[b],item)}await loadOnlineData();render();alert('Backup importato.')}}catch(e){showError(e)}};input.click()}const menjaBaseNavigate=navigate;function navigate(target){if(activeProfile?.role==='customer'&&!['Home','Nuovo ordine','Storico ordini','Punti fidelity','Il mio listino','Chat col titolare'].includes(target))target='Nuovo ordine';page=target;render()}function goCustomerPage(target){navigate(target)}const menjaBaseNavHTML=baseNavHTML;function navHTML(){menjaBaseNavHTML();if(activeProfile?.role==='customer'){const items=[['Home','⌂'],['Nuovo ordine','＋'],['Storico ordini','▤'],['Punti fidelity','✧'],['I miei listini','€'],['Chat col titolare','✉']];document.getElementById('bottom').innerHTML=items.map(([name,icon])=>'<button class="'+(page===name?'active':'')+'" onclick="goCustomerPage(this.dataset.page)" data-page="'+name+'"><span>'+icon+'</span>'+name+'</button>').join('')}}
