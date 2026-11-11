@@ -112,15 +112,25 @@ function adminNewOrderCustomerChanged(value){
  const field=document.getElementById('adminNewOrderCustomerName');
  if(field)field.closest('label').hidden=value!=='new';
 }
+function menjaLotAvailableQty(lot,allocations){return Math.max(0,(Number(lot?.qty)||0)-(allocations.get(String(lot?.id))||0))}
+function menjaLotsForProduct(product){
+ const key=String(product||'').trim().toLocaleLowerCase('it-IT');
+ const allocations=menjaLotSoldAllocations();
+ return db.lots.filter(l=>String(l.product||'').trim().toLocaleLowerCase('it-IT')===key&&menjaLotAvailableQty(l,allocations)>0).sort((a,b)=>String(a.production_date||a.date||a.created_at||'').localeCompare(String(b.production_date||b.date||b.created_at||'')));
+}
+function menjaLotOptions(product){
+ const allocations=menjaLotSoldAllocations();
+ const lots=menjaLotsForProduct(product);
+ return '<option value="">Seleziona lotto da scaricare</option>'+lots.map(l=>'<option value="'+esc(l.id)+'">'+esc(l.code||'Lotto')+' · '+esc(l.production_date||l.date||'')+' · disponibili '+menjaLotAvailableQty(l,allocations)+'</option>').join('');
+}
 function renderAdminOrderBaseLines(listId){
  const target=document.getElementById('adminNewOrderBases');if(!target)return;
- const list=db.priceLists.find(x=>String(x.id)===String(listId));
- const lines=list?priceListProducts(list):[];
+ const list=db.priceLists.find(x=>String(x.id)===String(listId)),lines=list?priceListProducts(list):[];
  target.innerHTML=lines.length?lines.map((line,index)=>{
-  const product=db.products.find(p=>p.id===line.product_id);
-  const name=String(line.product||product?.name||'Prodotto');
-  return '<label style="display:grid;grid-template-columns:auto minmax(0,1fr) 90px 110px;gap:10px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:10px;margin:7px 0"><input type="checkbox" name="admin_base" value="'+index+'" style="width:19px;height:19px"><span><strong>'+esc(name)+'</strong><small class="muted" style="display:block">'+esc(list.name||'Listino')+'</small></span><input class="field" aria-label="Quantità '+esc(name)+'" type="number" name="admin_qty_'+index+'" min="1" step="1" value="1"><input class="field" aria-label="Prezzo '+esc(name)+'" type="number" name="admin_price_'+index+'" min="0" step="0.01" value="'+esc(line.price??0)+'"></label>';
- }).join(''):'<div class="empty">Questo listino non contiene basi. Puoi aggiungerle manualmente qui sotto.</div>';
+  const product=db.products.find(p=>p.id===line.product_id),name=String(line.product||product?.name||'Prodotto');
+  const lots=menjaLotsForProduct(name);
+  return '<div style="display:grid;grid-template-columns:auto minmax(0,1fr) 76px 100px;gap:8px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:10px;margin:7px 0"><input type="checkbox" name="admin_base" value="'+index+'" style="width:19px;height:19px"><span><strong>'+esc(name)+'</strong><small class="muted" style="display:block">'+esc(list.name||'Listino')+'</small><select class="field" name="admin_lot_'+index+'" required style="margin-top:6px">'+menjaLotOptions(name)+'</select></span><input class="field" aria-label="Quantità '+esc(name)+'" type="number" name="admin_qty_'+index+'" min="1" step="1" value="1"><input class="field" aria-label="Prezzo '+esc(name)+'" type="number" name="admin_price_'+index+'" min="0" step="0.01" value="'+esc(line.price??0)+'"></div>';
+ }).join(''):'<div class="empty">Questo listino non contiene prodotti. Puoi aggiungere una base manualmente, scegliendo il lotto.</div>';
 }
 function openAdminNewOrder(){
  if(activeProfile?.role!=='admin')return;
@@ -128,7 +138,7 @@ function openAdminNewOrder(){
  const lists=db.priceLists.slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'it'));
  const customerOptions=customers.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name||c.email||'Cliente')+(c.code?' · '+esc(c.code):'')+'</option>').join('');
  const listOptions=lists.map(l=>'<option value="'+esc(l.id)+'">'+esc(l.name||'Listino senza nome')+'</option>').join('');
- document.getElementById('modal').innerHTML='<div class="modal" onclick="if(event.target===this)closeModal()"><form class="dialog" style="width:min(760px,96vw);max-height:90vh;overflow:auto" onsubmit="saveDashboardAdminOrder(event)"><h2>＋ Nuovo ordine</h2><div class="formgrid"><label class="wide">Cliente<select class="field" name="customer_choice" onchange="adminNewOrderCustomerChanged(this.value)"><option value="">Cliente occasionale / non registrato</option>'+customerOptions+'<option value="new">＋ Inserisci nuovo cliente</option></select></label><label class="wide" hidden>Nome o ragione sociale<input class="field" id="adminNewOrderCustomerName" name="customer_name" placeholder="Nome del cliente"></label><label class="wide">Giorno di consegna / ritiro<input class="field" type="date" name="pickup" min="'+lotDateToday()+'" required></label><label class="wide">Listino prezzi<select class="field" name="price_list_id" onchange="renderAdminOrderBaseLines(this.value)"><option value="">Seleziona un listino (facoltativo)</option>'+listOptions+'</select></label><div class="wide"><h3>Basi disponibili nel listino</h3><p class="muted">Seleziona le basi da inserire e modifica quantità o prezzo per questo ordine.</p><div id="adminNewOrderBases"><div class="empty">Seleziona un listino per visualizzare le basi.</div></div></div><div class="wide" style="border-top:1px solid var(--line);padding-top:14px"><h3>Aggiungi una base manualmente</h3><div class="formgrid"><label>Nome base<input class="field" name="manual_product" placeholder="Es. Base classica 30 cm"></label><label>Quantità<input class="field" type="number" name="manual_qty" min="1" step="1" value="1"></label><label>Prezzo unitario (€)<input class="field" type="number" name="manual_price" min="0" step="0.01" placeholder="0,00"></label></div></div><label class="wide">Note<textarea class="field" name="notes" rows="2" placeholder="Note per la produzione o la consegna"></textarea></label><div class="wide notice">L’ordine verrà registrato nel gestionale con stato “Confermato”. Il totale sarà calcolato dalle basi selezionate.</div></div><div class="dialogfoot"><button type="button" class="btn" onclick="closeModal()">Annulla</button><button class="btn gold" type="submit">Crea ordine</button></div></form></div>';
+ document.getElementById('modal').innerHTML='<div class="modal" onclick="if(event.target===this)closeModal()"><form class="dialog" style="width:min(760px,96vw);max-height:90vh;overflow:auto" onsubmit="saveDashboardAdminOrder(event)"><h2>＋ Nuovo ordine</h2><div class="formgrid"><label class="wide">Cliente<select class="field" name="customer_choice" onchange="adminNewOrderCustomerChanged(this.value)"><option value="">Cliente occasionale / non registrato</option>'+customerOptions+'<option value="new">＋ Inserisci nuovo cliente</option></select></label><label class="wide" hidden>Nome o ragione sociale<input class="field" id="adminNewOrderCustomerName" name="customer_name" placeholder="Nome del cliente"></label><label class="wide">Giorno di consegna / ritiro<input class="field" type="date" name="pickup" min="'+lotDateToday()+'" required></label><label class="wide">Listino prezzi<select class="field" name="price_list_id" onchange="renderAdminOrderBaseLines(this.value)"><option value="">Seleziona un listino (facoltativo)</option>'+listOptions+'</select></label><div class="wide"><h3>Basi disponibili nel listino</h3><p class="muted">Seleziona le basi da inserire e modifica quantità o prezzo per questo ordine.</p><div id="adminNewOrderBases"><div class="empty">Seleziona un listino per visualizzare le basi.</div></div></div><div class="wide" style="border-top:1px solid var(--line);padding-top:14px"><h3>Aggiungi una base manualmente</h3><div class="formgrid"><label>Nome base<input class="field" name="manual_product" placeholder="Es. Base classica 30 cm"></label><label>Quantità<input class="field" type="number" name="manual_qty" min="1" step="1" value="1"></label><label>Prezzo unitario (€)<input class="field" type="number" name="manual_price" min="0" step="0.01" placeholder="0,00"></label><label class="wide">Lotto da scaricare<select class="field" name="manual_lot_id"><option value="">Seleziona lotto</option>'+db.lots.slice().sort((a,b)=>String(b.production_date||b.date||'').localeCompare(String(a.production_date||a.date||''))).map(l=>'<option value="'+esc(l.id)+'">'+esc(l.code||'Lotto')+' · '+esc(l.product||'')+' · '+esc(l.production_date||l.date||'')+'</option>').join('')+'</select></label></div></div><label class="wide">Note<textarea class="field" name="notes" rows="2" placeholder="Note per la produzione o la consegna"></textarea></label><div class="wide notice">L’ordine verrà registrato nel gestionale con stato “Confermato”. Il totale sarà calcolato dalle basi selezionate.</div></div><div class="dialogfoot"><button type="button" class="btn" onclick="closeModal()">Annulla</button><button class="btn gold" type="submit">Crea ordine</button></div></form></div>';
 }
 async function saveDashboardAdminOrder(event){
  event.preventDefault();if(activeProfile?.role!=='admin')return;
@@ -137,26 +147,29 @@ async function saveDashboardAdminOrder(event){
  let customerName=customer?.name||customer?.email||'';
  if(choice==='new'||!choice)customerName=String(values.customer_name||'').trim();
  if((choice==='new'||!choice)&&!customerName){alert('Inserisci il nome del cliente oppure selezionane uno registrato.');return}
- const list=db.priceLists.find(x=>String(x.id)===String(values.price_list_id));
- const catalog=list?priceListProducts(list):[];
- const selected=[...form.querySelectorAll('input[name="admin_base"]:checked')];
- const lines=selected.map(input=>{
+ const list=db.priceLists.find(x=>String(x.id)===String(values.price_list_id)),catalog=list?priceListProducts(list):[];
+ const selected=[...form.querySelectorAll('input[name="admin_base"]:checked')],lines=[];
+ for(const input of selected){
   const index=Number(input.value),item=catalog[index];if(!item)throw new Error('Una base selezionata non è più disponibile.');
-  const product=db.products.find(p=>p.id===item.product_id);
-  const name=String(item.product||product?.name||'Prodotto');
-  const quantity=Number(form.elements['admin_qty_'+index]?.value||1),price=Number(form.elements['admin_price_'+index]?.value||0);
-  if(!Number.isInteger(quantity)||quantity<1||!Number.isFinite(price)||price<0)throw new Error('Controlla quantità e prezzo delle basi selezionate.');
-  return {product:name,product_id:item.product_id||null,quantity,unit_price:price,price_list_id:list.id,price_list_name:list.name||'Listino',line_total:Number((quantity*price).toFixed(2))};
- });
- const manualName=String(values.manual_product||'').trim();
- if(manualName){
-  const quantity=Number(values.manual_qty||1),price=Number(values.manual_price||0);
-  if(!Number.isInteger(quantity)||quantity<1||!Number.isFinite(price)||price<0){alert('Controlla quantità e prezzo della base manuale.');return}
-  lines.push({product:manualName,quantity,unit_price:price,line_total:Number((quantity*price).toFixed(2)),manual:true});
+  const product=db.products.find(p=>p.id===item.product_id),name=String(item.product||product?.name||'Prodotto');
+  const quantity=Number(form.elements['admin_qty_'+index]?.value||1),price=Number(form.elements['admin_price_'+index]?.value||0),lotId=String(form.elements['admin_lot_'+index]?.value||'');
+  const lot=db.lots.find(l=>String(l.id)===lotId),available=lot?menjaLotAvailableQty(lot,menjaLotSoldAllocations()):0;
+  if(!lot||String(lot.product||'').trim().toLocaleLowerCase('it-IT')!==name.trim().toLocaleLowerCase('it-IT'))throw new Error('Seleziona un lotto valido per la base '+name+'.');
+  if(!Number.isInteger(quantity)||quantity<1||quantity>available||!Number.isFinite(price)||price<0)throw new Error('La quantità richiesta per '+name+' supera la giacenza del lotto '+(lot.code||'')+'. Disponibili: '+available+'.');
+  lines.push({product:name,product_id:item.product_id||null,quantity,unit_price:price,price_list_id:list.id,price_list_name:list.name||'Listino',line_total:Number((quantity*price).toFixed(2)),lot_id:lot.id,lot_code:lot.code});
  }
- if(!lines.length){alert('Seleziona almeno una base dal listino oppure aggiungine una manualmente.');return}
+ const manualName=String(values.manual_product||'').trim(),manualLotId=String(values.manual_lot_id||'');
+ if(manualName||manualLotId){
+  const lot=db.lots.find(l=>String(l.id)===manualLotId);
+  if(!lot){alert('Se aggiungi una base manuale devi selezionare anche il lotto da scaricare.');return}
+  const name=manualName||String(lot.product||'').trim(),quantity=Number(values.manual_qty||1),price=Number(values.manual_price||0),available=menjaLotAvailableQty(lot,menjaLotSoldAllocations());
+  if(name.toLocaleLowerCase('it-IT')!==String(lot.product||'').trim().toLocaleLowerCase('it-IT')){alert('Il prodotto inserito non corrisponde al prodotto del lotto selezionato.');return}
+  if(!Number.isInteger(quantity)||quantity<1||quantity>available||!Number.isFinite(price)||price<0){alert('Quantità o prezzo non validi. Giacenza disponibile del lotto: '+available+'.');return}
+  lines.push({product:name,quantity,unit_price:price,line_total:Number((quantity*price).toFixed(2)),manual:true,lot_id:lot.id,lot_code:lot.code});
+ }
+ if(!lines.length){alert('Seleziona almeno una base e il relativo lotto da scaricare.');return}
  const total=Number(lines.reduce((sum,line)=>sum+line.line_total,0).toFixed(2));
- const order={id:crypto.randomUUID(),code:'ORD-'+String(Date.now()).slice(-6),customer:customerName,customer_id:customer?.isProfile?customer.id:null,customer_email:customer?.email||'',customer_code:customer?.code||customer?.fidelity_code||'',pickup:values.pickup,items:lines.map(line=>line.quantity+' × '+line.product).join(', '),lines,total:total.toFixed(2),notes:String(values.notes||'').trim(),status:'Confermato',created_at:new Date().toISOString(),updated_at:new Date().toISOString(),created_by:'admin'};
+ const order={id:crypto.randomUUID(),code:'ORD-'+String(Date.now()).slice(-6),customer:customerName,customer_id:customer?.isProfile?customer.id:null,customer_email:customer?.email||'',customer_code:customer?.code||customer?.fidelity_code||'',pickup:values.pickup,items:lines.map(line=>line.quantity+' × '+line.product+' ['+line.lot_code+']').join(', '),lines,total:total.toFixed(2),lot_ids:[...new Set(lines.map(line=>line.lot_id))],notes:String(values.notes||'').trim(),status:'Confermato',created_at:new Date().toISOString(),updated_at:new Date().toISOString(),created_by:'admin'};
  try{window.__menjaStage='salvataggio nuovo ordine dalla dashboard';await persistRecord('orders',order);db.orders.push(order);closeModal();page='Ordini';selectedAdminOrderId=order.id;render()}catch(error){showError(error)}
 }
 function customersForDashboardOrder(id){return id&&id!=='new'?db.customers.find(c=>String(c.id)===String(id)&&!c.deleted_at)||null:null}
@@ -342,23 +355,38 @@ function menjaOrderLineQuantities(order,product){
 function menjaLotSoldAllocations(){
  const completed=['Confermato','In produzione','Pronto per il ritiro','Ritirato','Consegnato','Completato'];
  const soldOrders=db.orders.filter(order=>completed.includes(String(order.status||''))).slice().sort((a,b)=>String(a.updated_at||a.created_at||a.pickup||'').localeCompare(String(b.updated_at||b.created_at||b.pickup||'')));
- const lotsByProduct=new Map();
+ const lotsByProduct=new Map(),lotById=new Map();
  db.lots.forEach(lot=>{
-  const key=String(lot.product||'').trim().toLocaleLowerCase('it-IT');
-  if(!key)return;
+  lotById.set(String(lot.id),lot);
+  const key=String(lot.product||'').trim().toLocaleLowerCase('it-IT');if(!key)return;
   if(!lotsByProduct.has(key))lotsByProduct.set(key,[]);
   lotsByProduct.get(key).push(lot);
  });
- const allocations=new Map();
- for(const [key,lots] of lotsByProduct){
+ const allocations=new Map(),remainingById=new Map();
+ for(const lots of lotsByProduct.values()){
   lots.sort((a,b)=>String(a.production_date||a.date||a.created_at||'').localeCompare(String(b.production_date||b.date||b.created_at||'')));
-  const remaining=lots.map(lot=>Math.max(0,Number(lot.qty)||0));
-  for(const order of soldOrders){
-   const quantity=menjaOrderLineQuantities(order,key);
-   let pending=quantity;
-   for(let i=0;i<lots.length&&pending>0;i++){
-    const used=Math.min(remaining[i],pending);
-    if(used>0){allocations.set(String(lots[i].id),(allocations.get(String(lots[i].id))||0)+used);remaining[i]-=used;pending-=used}
+  lots.forEach(l=>remainingById.set(String(l.id),Math.max(0,Number(l.qty)||0)));
+ }
+ const allocate=(lot,quantity)=>{
+  if(!lot||quantity<=0)return;
+  const id=String(lot.id),remaining=remainingById.get(id)||0,used=Math.min(remaining,quantity);
+  if(used>0){allocations.set(id,(allocations.get(id)||0)+used);remainingById.set(id,remaining-used)}
+  return quantity-used;
+ };
+ for(const order of soldOrders){
+  if(Array.isArray(order.lines)&&order.lines.length){
+   for(const line of order.lines){
+    const key=String(line.product||line.name||'').trim().toLocaleLowerCase('it-IT'),quantity=Math.max(0,Number(line.quantity??line.qty)||0);
+    if(!key||!quantity)continue;
+    const explicitId=line.lot_id?String(line.lot_id):'';
+    if(explicitId){allocate(lotById.get(explicitId),quantity);continue}
+    let pending=quantity;
+    for(const lot of lotsByProduct.get(key)||[]){if(pending<=0)break;pending=allocate(lot,pending)}
+   }
+  }else{
+   for(const [key,lots] of lotsByProduct){
+    let pending=menjaOrderLineQuantities(order,key);
+    for(const lot of lots){if(pending<=0)break;pending=allocate(lot,pending)}
    }
   }
  }
