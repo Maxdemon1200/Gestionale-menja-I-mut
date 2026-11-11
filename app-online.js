@@ -106,6 +106,63 @@ function formatCustomerPickupDate(value){if(!value)return '—';const datePart=S
 function customerOrderCatalog(){const ids=Array.isArray(activeProfile?.price_list_ids)&&activeProfile.price_list_ids.length?activeProfile.price_list_ids:(activeProfile?.price_list_id?[activeProfile.price_list_id]:[]);return db.priceLists.filter(list=>ids.includes(list.id)).flatMap(list=>priceListProducts(list).map(line=>({...line,list_id:list.id,list_name:list.name||'Listino',product:String(line.product||db.products.find(p=>p.id===line.product_id)?.name||'Prodotto'),price:Number(line.price)||0}))).filter(line=>line.product)}function menjaCustomerOrderForm(){const catalog=customerOrderCatalog();let catalogHtml=catalog.length?catalog.map((item,index)=>'<label class="customer-order-product" style="display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:12px;margin:8px 0"><input type="checkbox" name="order_product" value="'+index+'" style="width:20px;height:20px"><span><strong>'+esc(item.product)+'</strong><small class="muted" style="display:block">'+esc(item.list_name)+'</small><small class="muted">€ '+item.price.toFixed(2)+'</small></span><span><small class="muted">Quantità</small><input class="field" type="number" name="quantity_'+index+'" min="1" step="1" value="1" style="width:76px"></span></label>').join(''):'<div class="empty">Non ci sono prodotti nei listini assegnati al tuo account. Contatta il titolare per farti assegnare un listino con i prodotti.</div>';return '<form class="box formgrid" onsubmit="submitCustomerOrder(event)"><h2 class="wide">Nuovo ordine</h2><label class="wide">Giorno di ritiro<input class="field" type="date" name="pickup" min="'+new Date().toISOString().slice(0,10)+'" required></label><div class="wide"><h3>Seleziona i prodotti</h3><p class="muted">Spunta i prodotti che desideri e indica la quantità.</p>'+catalogHtml+'</div><label class="wide">Note per il titolare<textarea class="field" name="notes" rows="2" placeholder="Eventuali indicazioni per il tuo ordine"></textarea></label><div class="wide actions"><button class="btn gold" '+(!catalog.length?'disabled':'')+'>Invia ordine</button></div><p class="wide muted">L’orario verrà concordato con il titolare. La richiesta sarà approvata manualmente.</p></form>'}
 async function submitCustomerOrder(event){event.preventDefault();const form=event.currentTarget;const values=Object.fromEntries(new FormData(form));const catalog=customerOrderCatalog();const selected=[...form.querySelectorAll('input[name="order_product"]:checked')];if(!selected.length){alert('Seleziona almeno un prodotto.');return}const lines=selected.map(input=>{const item=catalog[Number(input.value)];const quantity=Number(form.elements['quantity_'+input.value]?.value||1);if(!item||!Number.isInteger(quantity)||quantity<1)throw new Error('Controlla le quantità dei prodotti selezionati.');return {product:item.product,product_id:item.product_id||null,quantity,unit_price:item.price,price_list_id:item.list_id,price_list_name:item.list_name,line_total:Number((quantity*item.price).toFixed(2))}});const total=Number(lines.reduce((sum,line)=>sum+line.line_total,0).toFixed(2));const obj={id:crypto.randomUUID(),code:'ORD-'+String(Date.now()).slice(-6),customer:activeProfile.full_name||activeProfile.email,customer_id:activeProfile.id,customer_email:activeProfile.email||'',customer_code:activeProfile.customer_code||'',pickup:values.pickup,items:lines.map(line=>line.quantity+' × '+line.product).join(', '),lines,total:total.toFixed(2),notes:values.notes||'',status:'Da approvare',created_at:new Date().toISOString()};try{await persistRecord('orders',obj);db.orders.push(obj);page='Storico ordini';render()}catch(e){showError(e)}}
 
+
+/* Creazione rapida ordini dalla dashboard amministratore */
+function adminNewOrderCustomerChanged(value){
+ const field=document.getElementById('adminNewOrderCustomerName');
+ if(field)field.closest('label').hidden=value!=='new';
+}
+function renderAdminOrderBaseLines(listId){
+ const target=document.getElementById('adminNewOrderBases');if(!target)return;
+ const list=db.priceLists.find(x=>String(x.id)===String(listId));
+ const lines=list?priceListProducts(list):[];
+ target.innerHTML=lines.length?lines.map((line,index)=>{
+  const product=db.products.find(p=>p.id===line.product_id);
+  const name=String(line.product||product?.name||'Prodotto');
+  return '<label style="display:grid;grid-template-columns:auto minmax(0,1fr) 90px 110px;gap:10px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:10px;margin:7px 0"><input type="checkbox" name="admin_base" value="'+index+'" style="width:19px;height:19px"><span><strong>'+esc(name)+'</strong><small class="muted" style="display:block">'+esc(list.name||'Listino')+'</small></span><input class="field" aria-label="Quantità '+esc(name)+'" type="number" name="admin_qty_'+index+'" min="1" step="1" value="1"><input class="field" aria-label="Prezzo '+esc(name)+'" type="number" name="admin_price_'+index+'" min="0" step="0.01" value="'+esc(line.price??0)+'"></label>';
+ }).join(''):'<div class="empty">Questo listino non contiene basi. Puoi aggiungerle manualmente qui sotto.</div>';
+}
+function openAdminNewOrder(){
+ if(activeProfile?.role!=='admin')return;
+ const customers=db.customers.filter(c=>!c.deleted_at).slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'it'));
+ const lists=db.priceLists.slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'it'));
+ const customerOptions=customers.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name||c.email||'Cliente')+(c.code?' · '+esc(c.code):'')+'</option>').join('');
+ const listOptions=lists.map(l=>'<option value="'+esc(l.id)+'">'+esc(l.name||'Listino senza nome')+'</option>').join('');
+ document.getElementById('modal').innerHTML='<div class="modal" onclick="if(event.target===this)closeModal()"><form class="dialog" style="width:min(760px,96vw);max-height:90vh;overflow:auto" onsubmit="saveDashboardAdminOrder(event)"><h2>＋ Nuovo ordine</h2><div class="formgrid"><label class="wide">Cliente<select class="field" name="customer_choice" onchange="adminNewOrderCustomerChanged(this.value)"><option value="">Cliente occasionale / non registrato</option>'+customerOptions+'<option value="new">＋ Inserisci nuovo cliente</option></select></label><label class="wide" hidden>Nome o ragione sociale<input class="field" id="adminNewOrderCustomerName" name="customer_name" placeholder="Nome del cliente"></label><label class="wide">Giorno di consegna / ritiro<input class="field" type="date" name="pickup" min="'+lotDateToday()+'" required></label><label class="wide">Listino prezzi<select class="field" name="price_list_id" onchange="renderAdminOrderBaseLines(this.value)"><option value="">Seleziona un listino (facoltativo)</option>'+listOptions+'</select></label><div class="wide"><h3>Basi disponibili nel listino</h3><p class="muted">Seleziona le basi da inserire e modifica quantità o prezzo per questo ordine.</p><div id="adminNewOrderBases"><div class="empty">Seleziona un listino per visualizzare le basi.</div></div></div><div class="wide" style="border-top:1px solid var(--line);padding-top:14px"><h3>Aggiungi una base manualmente</h3><div class="formgrid"><label>Nome base<input class="field" name="manual_product" placeholder="Es. Base classica 30 cm"></label><label>Quantità<input class="field" type="number" name="manual_qty" min="1" step="1" value="1"></label><label>Prezzo unitario (€)<input class="field" type="number" name="manual_price" min="0" step="0.01" placeholder="0,00"></label></div></div><label class="wide">Note<textarea class="field" name="notes" rows="2" placeholder="Note per la produzione o la consegna"></textarea></label><div class="wide notice">L’ordine verrà registrato nel gestionale con stato “Confermato”. Il totale sarà calcolato dalle basi selezionate.</div></div><div class="dialogfoot"><button type="button" class="btn" onclick="closeModal()">Annulla</button><button class="btn gold" type="submit">Crea ordine</button></div></form></div>';
+}
+async function saveDashboardAdminOrder(event){
+ event.preventDefault();if(activeProfile?.role!=='admin')return;
+ const form=event.currentTarget,values=Object.fromEntries(new FormData(form));
+ const choice=String(values.customer_choice||''),customer=customersForDashboardOrder(choice);
+ let customerName=customer?.name||customer?.email||'';
+ if(choice==='new'||!choice)customerName=String(values.customer_name||'').trim();
+ if((choice==='new'||!choice)&&!customerName){alert('Inserisci il nome del cliente oppure selezionane uno registrato.');return}
+ const list=db.priceLists.find(x=>String(x.id)===String(values.price_list_id));
+ const catalog=list?priceListProducts(list):[];
+ const selected=[...form.querySelectorAll('input[name="admin_base"]:checked')];
+ const lines=selected.map(input=>{
+  const index=Number(input.value),item=catalog[index];if(!item)throw new Error('Una base selezionata non è più disponibile.');
+  const product=db.products.find(p=>p.id===item.product_id);
+  const name=String(item.product||product?.name||'Prodotto');
+  const quantity=Number(form.elements['admin_qty_'+index]?.value||1),price=Number(form.elements['admin_price_'+index]?.value||0);
+  if(!Number.isInteger(quantity)||quantity<1||!Number.isFinite(price)||price<0)throw new Error('Controlla quantità e prezzo delle basi selezionate.');
+  return {product:name,product_id:item.product_id||null,quantity,unit_price:price,price_list_id:list.id,price_list_name:list.name||'Listino',line_total:Number((quantity*price).toFixed(2))};
+ });
+ const manualName=String(values.manual_product||'').trim();
+ if(manualName){
+  const quantity=Number(values.manual_qty||1),price=Number(values.manual_price||0);
+  if(!Number.isInteger(quantity)||quantity<1||!Number.isFinite(price)||price<0){alert('Controlla quantità e prezzo della base manuale.');return}
+  lines.push({product:manualName,quantity,unit_price:price,line_total:Number((quantity*price).toFixed(2)),manual:true});
+ }
+ if(!lines.length){alert('Seleziona almeno una base dal listino oppure aggiungine una manualmente.');return}
+ const total=Number(lines.reduce((sum,line)=>sum+line.line_total,0).toFixed(2));
+ const order={id:crypto.randomUUID(),code:'ORD-'+String(Date.now()).slice(-6),customer:customerName,customer_id:customer?.isProfile?customer.id:null,customer_email:customer?.email||'',customer_code:customer?.code||customer?.fidelity_code||'',pickup:values.pickup,items:lines.map(line=>line.quantity+' × '+line.product).join(', '),lines,total:total.toFixed(2),notes:String(values.notes||'').trim(),status:'Confermato',created_at:new Date().toISOString(),updated_at:new Date().toISOString(),created_by:'admin'};
+ try{window.__menjaStage='salvataggio nuovo ordine dalla dashboard';await persistRecord('orders',order);db.orders.push(order);closeModal();page='Ordini';selectedAdminOrderId=order.id;render()}catch(error){showError(error)}
+}
+function customersForDashboardOrder(id){return id&&id!=='new'?db.customers.find(c=>String(c.id)===String(id)&&!c.deleted_at)||null:null}
+const menjaOriginalDashboardNewButton=btn;
+btn=function(text,fn='openNew()'){if(text==='Nuovo')return '<button class="btn gold" onclick="openAdminNewOrder()">＋ Nuovo ordine</button>';return menjaOriginalDashboardNewButton(text,fn)};
+
 window.showArchivedCustomers=false;
 let selectedAdminCustomerId=null,editingAdminOrderId=null;
 async function archiveAdminCustomer(id){
