@@ -241,7 +241,8 @@ function filterProductionLots(input){
 function productionLotsPage(){
  if(activeProfile?.role!=='admin')return '<div class="box">Accesso non consentito.</div>';
  if(selectedProductionLotId==='new')return productionLotEditor(null);if(selectedProductionLotId){const lot=db.lots.find(x=>x.id===selectedProductionLotId);return lot?productionLotEditor(lot):'<div class="box">Lotto non trovato.<button class="btn" onclick="cancelProductionLotEdit()">Torna ai lotti</button></div>'}
- const lots=db.lots.slice().sort((a,b)=>String(b.production_date||b.date||b.created_at||'').localeCompare(String(a.production_date||a.date||a.created_at||'')));
+ const lotDateValue=value=>{if(!value)return 0;const raw=String(value).trim();let match=raw.match(/^(\\d{1,2})[\\/.](\\d{1,2})[\\/.](\\d{4})$/);if(match)return new Date(Number(match[3]),Number(match[2])-1,Number(match[1])).getTime()||0;const time=Date.parse(raw);return Number.isFinite(time)?time:0};
+ const lots=db.lots.slice().sort((a,b)=>lotDateValue(b.production_date||b.date)-lotDateValue(a.production_date||a.date)||lotDateValue(b.created_at)-lotDateValue(a.created_at)||String(b.code||'').localeCompare(String(a.code||''),'it'));
  const rows=lots.map(l=>{
   const linked=db.orders.filter(o=>(o.lot_ids||[]).includes(l.id)||(o.lot_ids||[]).includes(l.code));
   const searchable=[l.code,l.product,l.qty,l.unit,l.production_date,l.date,l.expiry,l.status,l.operator,l.ingredients_lots,l.packaging_lot,l.allergens,l.process_notes,l.storage,...linked.flatMap(o=>[o.code,o.customer,o.items])].join(' ').toLocaleLowerCase('it-IT');
