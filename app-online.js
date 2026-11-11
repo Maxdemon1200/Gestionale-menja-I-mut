@@ -111,7 +111,7 @@ function openAdminCustomer(id){if(activeProfile?.role!=='admin')return;selectedA
 function adminCustomerOrders(customer){const code=String(customer?.code||customer?.fidelity_code||'').trim();const name=String(customer?.name||'').trim().toLocaleLowerCase('it-IT');return db.orders.filter(o=>{if(customer?.isProfile&&o.customer_id)return o.customer_id===customer.id;const orderCode=String(o.customer_code||'').trim();if(code&&orderCode)return code===orderCode;return String(o.customer||'').trim().toLocaleLowerCase('it-IT')===name})}
 
 function adminOrderEditor(order,customer){
- const o=order||{},date=String(o.pickup||'').split('T')[0],statuses=['Da approvare','Confermato','In produzione','Pronto per il ritiro','Ritirato','Rifiutato'];
+ const o=order||{},date=String(o.pickup||'').split('T')[0],statuses=['Da approvare','Confermato','In produzione','Pronto per il ritiro','Ritirato','Rifiutato','Annullato'];
 
  return '<section class="box" style="margin-bottom:16px"><h2>'+(order?'Modifica ordine '+esc(o.code||''):'Aggiungi ordine')+'</h2><form class="formgrid" onsubmit="saveAdminCustomerOrder(event)" data-customer-id="'+esc(customer.id)+'"><label>Giorno di ritiro<input class="field" type="date" name="pickup" value="'+esc(date)+'" required></label><label>Importo totale (€)<input class="field" type="number" name="total" min="0" step="0.01" value="'+esc(o.total??'')+'"></label><label class="wide">Prodotti e quantità<textarea class="field" name="items" rows="4" required placeholder="Es. 2 Margherite, 1 teglia...">'+esc(o.items||'')+'</textarea></label><label class="wide">Note<textarea class="field" name="notes" rows="2" placeholder="Note per la preparazione o il ritiro">'+esc(o.notes||'')+'</textarea></label><label class="wide">Stato ordine<select class="field" name="status">'+statuses.map(st=>'<option value="'+esc(st)+'" '+(String(o.status||'Da approvare')===st?'selected':'')+'>'+esc(st)+'</option>').join('')+'</select></label><div class="wide notice">Il magazzino scala automaticamente le quantità quando l’ordine viene segnato come “Ritirato”. Le basi vengono attribuite ai lotti più vecchi disponibili (FIFO), senza selezionare il lotto a mano.</div><div class="wide dialogfoot"><button type="button" class="btn" onclick="cancelAdminOrderEdit()">Annulla</button><button class="btn gold" type="submit">Salva ordine</button></div></form></section>';
 }
@@ -269,8 +269,8 @@ async function signOut(){if(ownerNoticeTimer){clearInterval(ownerNoticeTimer);ow
 async function approveProfile(id,status){try{const value=({Attivo:'approved','In attesa di abilitazione':'pending',Sospeso:'suspended',Rifiutato:'rejected'})[status]||'approved';const {error}=await onlineClient.from('profiles').update({approval_status:value}).eq('id',id);if(error)throw error;await loadOnlineData();await refreshOwnerNotice();render()}catch(e){showError(e)}}
 async function setOrderStatus(id,status){
  try{
-  if(activeProfile?.role!=='admin')throw new Error('Solo il titolare può approvare o rifiutare gli ordini.');
-  if(!['Confermato','Rifiutato'].includes(status))throw new Error('Stato ordine non valido.');
+  if(activeProfile?.role!=='admin')throw new Error('Solo il titolare può modificare lo stato degli ordini.');
+  if(!['Confermato','Rifiutato','Annullato'].includes(status))throw new Error('Stato ordine non valido.');
   const item=db.orders.find(x=>String(x.id)===String(id));
   if(!item)throw new Error('Ordine non trovato. Aggiorna la pagina e riprova.');
   const updatedPayload={...item,status};
