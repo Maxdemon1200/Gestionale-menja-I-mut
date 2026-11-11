@@ -218,7 +218,7 @@ function menjaOrderLineQuantities(order,product){
  return total;
 }
 function menjaLotSoldAllocations(){
- const completed=['Ritirato','Consegnato','Completato'];
+ const completed=['Confermato','In produzione','Pronto per il ritiro','Ritirato','Consegnato','Completato'];
  const soldOrders=db.orders.filter(order=>completed.includes(String(order.status||''))).slice().sort((a,b)=>String(a.updated_at||a.created_at||a.pickup||'').localeCompare(String(b.updated_at||b.created_at||b.pickup||'')));
  const lotsByProduct=new Map();
  db.lots.forEach(lot=>{
@@ -256,7 +256,7 @@ function menjaWarehousePage(){
  }).join('');
  const totals=lots.reduce((acc,lot)=>{const p=Math.max(0,Number(lot.qty)||0),s=Math.min(p,menjaLotSoldQuantity(lot,soldAllocations));acc.produced+=p;acc.sold+=s;acc.stock+=Math.max(0,p-s);return acc},{produced:0,sold:0,stock:0});
  const summary=(label,value)=>'<div class="box"><small class="muted">'+label+'</small><h2 style="margin:6px 0 0">'+value.toLocaleString('it-IT')+'</h2><small class="muted">pezzi</small></div>';
- return head('Magazzino','Giacenza delle basi per lotto: produzione meno ordini ritirati')+'<div class="grid three" style="margin-bottom:16px">'+summary('BASI PRODOTTE',totals.produced)+summary('BASI VENDUTE',totals.sold)+summary('BASI IN GIACENZA',totals.stock)+'</div><div class="box"><div class="toolbar"><input class="field" placeholder="Cerca per lotto, prodotto o data" oninput="filterWarehouseLots(this)"><span class="muted">'+lots.length+' lotti</span></div>'+(lots.length?'<div class="tablewrap"><table class="table" id="warehouseLotsTable"><thead><tr><th>Lotto</th><th>Prodotto</th><th>Data</th><th>Prodotte</th><th>Vendute</th><th>In giacenza</th><th>Stato lotto</th></tr></thead><tbody>'+rows+'</tbody></table></div><div class="empty" id="warehouseSearchEmpty" hidden>Nessun lotto trovato.</div>':'<div class="empty">Non ci sono ancora lotti di produzione. Registra un lotto nell’area Lotti produzione: le quantità compariranno qui.</div>')+'</div><p class="muted">Le vendite vengono scalate solo dagli ordini con stato “Ritirato” e lotto associato. Gli ordini senza lotto collegato non possono essere attribuiti a una giacenza specifica.</p>';
+ return head('Magazzino','Giacenza delle basi per lotto: produzione meno ordini approvati')+'<div class="grid three" style="margin-bottom:16px">'+summary('BASI PRODOTTE',totals.produced)+summary('BASI IMPEGNATE',totals.sold)+summary('BASI IN GIACENZA',totals.stock)+'</div><div class="box"><div class="toolbar"><input class="field" placeholder="Cerca per lotto, prodotto o data" oninput="filterWarehouseLots(this)"><span class="muted">'+lots.length+' lotti</span></div>'+(lots.length?'<div class="tablewrap"><table class="table" id="warehouseLotsTable"><thead><tr><th>Lotto</th><th>Prodotto</th><th>Data</th><th>Prodotte</th><th>Vendute</th><th>In giacenza</th><th>Stato lotto</th></tr></thead><tbody>'+rows+'</tbody></table></div><div class="empty" id="warehouseSearchEmpty" hidden>Nessun lotto trovato.</div>':'<div class="empty">Non ci sono ancora lotti di produzione. Registra un lotto nell’area Lotti produzione: le quantità compariranno qui.</div>')+'</div><p class="muted">Le basi vengono impegnate automaticamente quando l’ordine passa a “Confermato” (o a uno stato successivo). Se l’ordine viene rifiutato o torna “Da approvare”, le quantità rientrano nella giacenza.</p>';
 }
 function filterWarehouseLots(input){
  const query=String(input.value||'').trim().toLocaleLowerCase('it-IT');
