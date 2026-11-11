@@ -2,6 +2,12 @@
 alter table public.profiles
 add column if not exists price_list_ids uuid[] not null default '{}'::uuid[];
 
+-- Migra le assegnazioni singole già presenti senza perderle.
+update public.profiles
+set price_list_ids = array[price_list_id]
+where price_list_id is not null
+  and cardinality(price_list_ids) = 0;
+
 -- I clienti approvati possono leggere solo i listini assegnati al proprio profilo.
 drop policy if exists "approved customers read catalog and assigned pricelists"
 on public.records;
