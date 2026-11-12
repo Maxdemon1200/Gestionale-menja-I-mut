@@ -741,7 +741,7 @@ function openNew(which=page){if(which==='Esporta report'){exportData();return}le
 function closeModal(){document.getElementById('modal').innerHTML=''}async function addRow(e,which){e.preventDefault();let obj=Object.fromEntries(new FormData(e.target));if(which==='Clienti'){try{let code;if(onlineClient){const{data,error}=await onlineClient.rpc('allocate_customer_code');if(error)throw error;code=data}else{let nums=db.customers.map(c=>parseInt(String(c.code||'').replace(/\D/g,''))||0);code='C'+String(Math.max(0,...nums)+1).padStart(3,'0')}obj.code=code;obj.fidelity_code=code;obj.points=0}catch(err){showError(err);return}}if(which==='Ordini'||which==='Prenotazioni')obj.code='ORD-'+String(Date.now()).slice(-6);let bucket={'Clienti':'customers','Prodotti':'products','Ricette':'recipes','Listini':'priceLists','Ordini':'orders','Prenotazioni':'orders','Lotti produzione':'lots','Magazzino':'inventory','Fidelity':'fidelity','Produzione':'production','Fatture':'invoices','Finanza':'events'}[which]||'events';if(which==='Clienti')obj.status=obj.status||'In attesa di abilitazione';if(which==='Ordini')obj.status=obj.status||'Da approvare';if(which==='Ordini'&&window.activeProfile?.role!=='admin')obj.customer=window.activeProfile.full_name||window.activeProfile.email;obj.id=crypto.randomUUID();db[bucket].push(obj);save();if(onlineClient)persistRecord(bucket,obj).catch(showError);closeModal();render()}
 function filterRows(inp){let q=inp.value.toLowerCase();document.querySelectorAll('.table tbody tr').forEach(r=>r.style.display=r.innerText.toLowerCase().includes(q)?'':'none')}
 function exportData(){let blob=new Blob([JSON.stringify({format:'menja-i-mut-backup-v1',exportedAt:new Date().toISOString(),data:db},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='menja-i-mut-backup.json';a.click();URL.revokeObjectURL(a.href)}
-</script><script src="app-online.js?v=46"></script><script>
+</script><script src="app-online.js?v=47"></script><script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js", { scope: "./" }).then(registration => {
@@ -780,4 +780,74 @@ html.touch-mobile #mobileMore .mobile-more-sheet{
 html.touch-mobile #mobileMoreList{
   min-height:0!important;
   padding-bottom:12px!important;
+}
+
+
+/* MENJA I MUT · area contenuti con scroll dedicato: tutte le funzioni admin e clienti */
+@media (max-width: 1400px){
+ html.touch-mobile,
+ html.touch-mobile body{
+   width:100%!important;
+   height:100%!important;
+   min-height:100%!important;
+   overflow:hidden!important;
+ }
+ html.touch-mobile body{
+   position:relative!important;
+   display:block!important;
+ }
+ html.touch-mobile .app{
+   display:block!important;
+   width:100%!important;
+   height:100dvh!important;
+   min-height:0!important;
+   overflow:hidden!important;
+ }
+ html.touch-mobile .main{
+   display:flex!important;
+   flex-direction:column!important;
+   width:100%!important;
+   height:100dvh!important;
+   min-height:0!important;
+   max-height:100dvh!important;
+   overflow:hidden!important;
+ }
+ html.touch-mobile .top{
+   position:relative!important;
+   top:auto!important;
+   flex:0 0 62px!important;
+   min-height:62px!important;
+   z-index:4!important;
+ }
+ html.touch-mobile .content,
+ html.touch-mobile body.admin-mode .content,
+ html.touch-mobile body.customer-mode .content,
+ html.touch-mobile #view{
+   display:block!important;
+   flex:1 1 auto!important;
+   width:100%!important;
+   height:auto!important;
+   min-height:0!important;
+   max-height:none!important;
+   overflow-x:hidden!important;
+   overflow-y:auto!important;
+   overscroll-behavior-y:contain!important;
+   -webkit-overflow-scrolling:touch!important;
+   touch-action:pan-y!important;
+   position:relative!important;
+   padding-bottom:calc(120px + env(safe-area-inset-bottom))!important;
+ }
+ html.touch-mobile .box,
+ html.touch-mobile .grid,
+ html.touch-mobile .formgrid,
+ html.touch-mobile .tablewrap,
+ html.touch-mobile .mobile-record-list,
+ html.touch-mobile form{
+   touch-action:pan-y!important;
+ }
+ html.touch-mobile .bottomnav{
+   position:fixed!important;
+   z-index:100!important;
+   bottom:0!important;
+ }
 }
