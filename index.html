@@ -369,6 +369,82 @@ html.touch-mobile input,html.touch-mobile select,html.touch-mobile textarea{font
 html.touch-mobile .owner-notice,html.touch-mobile .owner-order-notice{margin:10px 12px 0!important;max-width:calc(100% - 24px)}
 @media(max-width:390px){html.touch-mobile .cards{grid-template-columns:1fr!important}}
 
+
+/* MENJA I MUT · rifinitura completa smartphone Android/iOS */
+html.touch-mobile{color-scheme:dark;scroll-behavior:smooth}
+html.touch-mobile body{font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+html.touch-mobile .main{background:transparent}
+html.touch-mobile .top{position:sticky;top:0;z-index:15;min-height:58px;display:flex;align-items:center;justify-content:space-between;background:rgba(13,19,16,.96);border-bottom:1px solid #34443b;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+html.touch-mobile .top>div:first-child{letter-spacing:.035em;font-size:12px}
+html.touch-mobile .top>div:first-child b{font-size:12px}
+html.touch-mobile .top>div:first-child small{font-size:9px;letter-spacing:.12em}
+html.touch-mobile .top .actions{flex:0 1 auto;max-width:62%;scrollbar-width:none}
+html.touch-mobile .top .actions .btn{border-radius:9px;min-height:38px}
+html.touch-mobile .content{padding-top:18px!important}
+html.touch-mobile .head{margin-bottom:17px!important}
+html.touch-mobile .head h1{font-size:clamp(22px,6vw,27px)!important;line-height:1.18;letter-spacing:-.035em}
+html.touch-mobile .head .muted{font-size:12px;line-height:1.45}
+html.touch-mobile .cards{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;margin-bottom:14px}
+html.touch-mobile .card,html.touch-mobile body.admin-mode .card{min-height:104px;padding:14px!important;border-radius:15px;background:linear-gradient(145deg,#1b2720,#151e19);border-color:#35463a;box-shadow:0 5px 16px #0002}
+html.touch-mobile .card small{font-size:11px;line-height:1.35}
+html.touch-mobile .metric{font-size:clamp(23px,6vw,29px)!important;line-height:1.1;margin:8px 0 5px}
+html.touch-mobile .two,html.touch-mobile .grid.two{grid-template-columns:minmax(0,1fr)!important;gap:12px!important}
+html.touch-mobile .grid.three,html.touch-mobile .grid.four{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+html.touch-mobile .box,html.touch-mobile body.admin-mode .box{border-radius:15px;padding:15px!important;border-color:#34443a;box-shadow:0 5px 18px #0002}
+html.touch-mobile .box h2{font-size:15px;line-height:1.3;margin-bottom:12px}
+html.touch-mobile .notice{padding:12px 13px;border-radius:12px;font-size:12px;line-height:1.45}
+html.touch-mobile .toolbar{gap:8px!important;margin-bottom:13px!important}
+html.touch-mobile .toolbar .field,html.touch-mobile .toolbar input{border-radius:11px;min-height:46px}
+html.touch-mobile .field,html.touch-mobile select,html.touch-mobile textarea{border-radius:10px;padding:11px 12px}
+html.touch-mobile .btn,html.touch-mobile .smallbtn{border-radius:10px}
+html.touch-mobile .btn{min-height:42px}
+html.touch-mobile .btn.gold{box-shadow:0 4px 13px #d9b66d25}
+html.touch-mobile .tablewrap{border:1px solid #34443a;border-radius:11px;background:#151e19;max-width:100%;overscroll-behavior-x:contain}
+html.touch-mobile .table{min-width:600px}
+html.touch-mobile .table th{position:sticky;top:0;background:#202b25;z-index:1;font-size:10px;letter-spacing:.06em}
+html.touch-mobile .table td{font-size:12px;padding:11px 9px;vertical-align:middle}
+html.touch-mobile .table tbody tr:active{background:#29382e}
+html.touch-mobile .badge{font-size:10px;padding:4px 8px;white-space:nowrap}
+html.touch-mobile .producttile{border-radius:12px;padding:13px;background:linear-gradient(145deg,#1b2720,#141c18)}
+html.touch-mobile .formgrid{gap:12px!important}
+html.touch-mobile .formgrid label{font-size:12px;line-height:1.4}
+html.touch-mobile .formgrid .wide{grid-column:1/-1}
+html.touch-mobile .pillrow{gap:7px}
+html.touch-mobile .modal{z-index:50;background:rgba(0,0,0,.68);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+html.touch-mobile .dialog{border-radius:20px 20px 14px 14px!important;border-color:#53634f;box-shadow:0 18px 60px #0009;padding:18px!important}
+html.touch-mobile .dialog h2{font-size:19px;line-height:1.25}
+html.touch-mobile .dialogfoot{gap:8px}
+html.touch-mobile .dialogfoot .btn{min-width:0}
+html.touch-mobile .bottomnav{min-height:66px;box-shadow:0 -8px 26px #0005;background:rgba(16,24,19,.97)!important;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid #3b4c40!important}
+html.touch-mobile .bottomnav button{position:relative;color:#9eaa9f!important;font-weight:600;letter-spacing:-.01em;transition:color .15s,background .15s}
+html.touch-mobile .bottomnav button.active{color:#e4c47c!important;background:#d9b66d12;border-radius:11px}
+html.touch-mobile .bottomnav button.active:before{content:"";position:absolute;top:1px;left:28%;right:28%;height:2px;border-radius:3px;background:#d9b66d}
+html.touch-mobile .bottomnav button span{line-height:1.2}
+html.touch-mobile .empty{padding:25px 12px;font-size:13px}
+html.touch-mobile a,html.touch-mobile button{ -webkit-tap-highlight-color:transparent}
+html.touch-mobile button:focus-visible,html.touch-mobile input:focus-visible,html.touch-mobile select:focus-visible,html.touch-mobile textarea:focus-visible{outline:2px solid #d9b66d;outline-offset:2px}
+html.touch-mobile ::-webkit-scrollbar{width:4px;height:4px}
+html.touch-mobile ::-webkit-scrollbar-thumb{background:#526253;border-radius:8px}
+@media(max-width:390px){
+ html.touch-mobile .content{padding-left:10px!important;padding-right:10px!important}
+ html.touch-mobile .cards,html.touch-mobile .grid.three,html.touch-mobile .grid.four{grid-template-columns:1fr!important}
+ html.touch-mobile .card{min-height:90px}
+ html.touch-mobile .top .actions{max-width:58%}
+}
+@media(min-width:600px) and (max-width:900px){
+ html.touch-mobile .content{padding-left:20px!important;padding-right:20px!important}
+ html.touch-mobile .cards{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+ html.touch-mobile .two,html.touch-mobile .grid.two{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(orientation:landscape) and (max-height:520px){
+ html.touch-mobile .top{position:relative}
+ html.touch-mobile .bottomnav button{min-height:48px}
+ html.touch-mobile .content{padding-bottom:82px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ html.touch-mobile,html.touch-mobile *{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+
 </style></head>
 <body><script>
 /* Rileva lo smartphone anche se Android assegna alla PWA una larghezza desktop */
