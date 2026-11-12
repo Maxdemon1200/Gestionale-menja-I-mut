@@ -16,6 +16,16 @@
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    },
+    {
+      "src": "./menjaimut.jpg",
+      "sizes": "128x128",
+      "type": "image/jpeg",
+      "purpose": "any"
     }
+  ],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
   ]
 }
