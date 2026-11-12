@@ -864,6 +864,13 @@ html.touch-mobile .top>div:first-child small{
  margin-left:4px!important;
  font-size:clamp(9px,2.7vw,11px)!important;
 }
+
+/* Fix menu mobile: dopo la selezione la tendina deve sparire davvero */
+html.touch-mobile #mobileMore[hidden]{
+ display:none!important;
+ visibility:hidden!important;
+ pointer-events:none!important;
+}
 </style></head>
 <body><script>
 /* Rileva lo smartphone anche se Android assegna alla PWA una larghezza desktop */
