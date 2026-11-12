@@ -653,6 +653,50 @@ html.touch-mobile .mobile-record-actions button{flex:1 1 42%;min-width:0}
  html.touch-mobile .table td,html.touch-mobile .mobile-record-field{grid-template-columns:minmax(78px,34%) minmax(0,1fr)}
 }
 
+
+/* MENJA I MUT · scroll verticale smartphone: pagina intera, menu inferiore fisso */
+html.touch-mobile,
+html.touch-mobile body{
+  height:auto!important;
+  min-height:100%!important;
+  min-height:100dvh!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior-y:auto!important;
+  position:static!important;
+}
+html.touch-mobile body{
+  display:block!important;
+  touch-action:pan-y!important;
+}
+html.touch-mobile .app,
+html.touch-mobile .main,
+html.touch-mobile .content,
+html.touch-mobile #view{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+  overflow-y:visible!important;
+  position:relative;
+}
+html.touch-mobile .app{min-height:100dvh!important}
+html.touch-mobile .content{
+  padding-bottom:calc(112px + env(safe-area-inset-bottom))!important;
+  -webkit-overflow-scrolling:touch;
+}
+html.touch-mobile .tablewrap,
+html.touch-mobile .mobile-record-list{
+  max-height:none!important;
+  overflow:visible!important;
+}
+html.touch-mobile .bottomnav{
+  position:fixed!important;
+  z-index:100!important;
+  bottom:0!important;
+  top:auto!important;
+}
+
 </style></head>
 <body><script>
 /* Rileva lo smartphone anche se Android assegna alla PWA una larghezza desktop */
@@ -697,7 +741,7 @@ function openNew(which=page){if(which==='Esporta report'){exportData();return}le
 function closeModal(){document.getElementById('modal').innerHTML=''}async function addRow(e,which){e.preventDefault();let obj=Object.fromEntries(new FormData(e.target));if(which==='Clienti'){try{let code;if(onlineClient){const{data,error}=await onlineClient.rpc('allocate_customer_code');if(error)throw error;code=data}else{let nums=db.customers.map(c=>parseInt(String(c.code||'').replace(/\D/g,''))||0);code='C'+String(Math.max(0,...nums)+1).padStart(3,'0')}obj.code=code;obj.fidelity_code=code;obj.points=0}catch(err){showError(err);return}}if(which==='Ordini'||which==='Prenotazioni')obj.code='ORD-'+String(Date.now()).slice(-6);let bucket={'Clienti':'customers','Prodotti':'products','Ricette':'recipes','Listini':'priceLists','Ordini':'orders','Prenotazioni':'orders','Lotti produzione':'lots','Magazzino':'inventory','Fidelity':'fidelity','Produzione':'production','Fatture':'invoices','Finanza':'events'}[which]||'events';if(which==='Clienti')obj.status=obj.status||'In attesa di abilitazione';if(which==='Ordini')obj.status=obj.status||'Da approvare';if(which==='Ordini'&&window.activeProfile?.role!=='admin')obj.customer=window.activeProfile.full_name||window.activeProfile.email;obj.id=crypto.randomUUID();db[bucket].push(obj);save();if(onlineClient)persistRecord(bucket,obj).catch(showError);closeModal();render()}
 function filterRows(inp){let q=inp.value.toLowerCase();document.querySelectorAll('.table tbody tr').forEach(r=>r.style.display=r.innerText.toLowerCase().includes(q)?'':'none')}
 function exportData(){let blob=new Blob([JSON.stringify({format:'menja-i-mut-backup-v1',exportedAt:new Date().toISOString(),data:db},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='menja-i-mut-backup.json';a.click();URL.revokeObjectURL(a.href)}
-</script><script src="app-online.js?v=44"></script><script>
+</script><script src="app-online.js?v=45"></script><script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js", { scope: "./" }).then(registration => {
