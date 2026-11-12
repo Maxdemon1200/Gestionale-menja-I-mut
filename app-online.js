@@ -216,6 +216,19 @@ async function restoreAdminCustomer(id){
 function toggleArchivedCustomers(){window.showArchivedCustomers=!window.showArchivedCustomers;render()}
 
 function openAdminCustomer(id){if(activeProfile?.role!=='admin')return;selectedAdminCustomerId=id;editingAdminOrderId=null;page='Scheda cliente';render()}
+async function deleteAdminOrder(id){
+ if(activeProfile?.role!=='admin')return;
+ const order=db.orders.find(o=>String(o.id)===String(id));if(!order)return;
+ const customer=orderCustomerName(order);
+ if(!confirm('Eliminare definitivamente l’ordine '+(order.code||'')+' di '+customer+'?\n\nL’ordine verrà rimosso dallo storico e le quantità dei lotti torneranno disponibili.'))return;
+ try{
+  window.__menjaStage='eliminazione ordine';
+  const {data,error}=await onlineClient.from('records').delete().eq('id',id).eq('kind','orders').eq('owner_id',activeUser.id).select('id').single();
+  if(error)throw error;if(!data)throw new Error('Ordine non eliminato: verifica i permessi.');
+  db.orders=db.orders.filter(o=>String(o.id)!==String(id));
+  await loadOnlineData();render();
+ }catch(error){showError(error)}
+}
 function orderCustomerName(order){if(order?.customer&&String(order.customer).trim())return order.customer;const customer=db.customers.find(c=>String(c.id)===String(order?.customer_id));return customer?.name||order?.customer_name||order?.customer_email||'Cliente non identificato'}
 function adminCustomerOrders(customer){const code=String(customer?.code||customer?.fidelity_code||'').trim();const name=String(customer?.name||'').trim().toLocaleLowerCase('it-IT');return db.orders.filter(o=>{if(customer?.isProfile&&o.customer_id)return o.customer_id===customer.id;const orderCode=String(o.customer_code||'').trim();if(code&&orderCode)return code===orderCode;return String(o.customer||'').trim().toLocaleLowerCase('it-IT')===name})}
 
