@@ -256,6 +256,48 @@ body.customer-mode .dialogfoot{border-top:1px solid #e8e1d4;padding-top:14px}
  .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 
+
+/* Ottimizzazione mobile Menja i Mut v43 */
+@media(max-width:700px){
+  html,body,#view,.app,.main{max-width:100%;min-width:0}
+  body{overscroll-behavior-x:none}
+  .top{align-items:center}
+  .top .actions{max-width:100%;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .top .actions::-webkit-scrollbar,.bottomnav::-webkit-scrollbar{display:none}
+  .top .actions .btn{min-height:38px;flex:0 0 auto}
+  .bottomnav{justify-content:flex-start!important;overflow-x:auto!important;overscroll-behavior-x:contain;scrollbar-width:none;touch-action:pan-x;gap:4px!important}
+  .bottomnav button{flex:0 0 72px!important;width:72px;max-width:72px!important;min-width:72px!important;min-height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px!important;line-height:1.15;padding:6px 3px!important;border-radius:9px}
+  .bottomnav button span{font-size:19px!important;line-height:1.1}
+  .content{overflow-wrap:anywhere}
+  .head .btn{min-height:42px;max-width:100%}
+  .btn,.smallbtn,.customer-action{touch-action:manipulation}
+  .toolbar label select,.toolbar label .field{width:100%!important;min-width:0!important}
+  .tablewrap{overscroll-behavior-x:contain}
+  .table th,.table td{white-space:nowrap}
+  .formgrid label{min-width:0}
+  .formgrid input,.formgrid select,.formgrid textarea{width:100%;min-width:0}
+  .modal{align-items:flex-end;padding:8px 8px calc(8px + env(safe-area-inset-bottom))}
+  .dialog{width:100%;max-height:calc(100dvh - 16px - env(safe-area-inset-top));border-radius:18px 18px 12px 12px;padding:16px}
+  .dialogfoot{position:sticky;bottom:-16px;background:inherit;padding:12px 0 4px}
+  .owner-notice,.owner-order-notice{max-width:calc(100% - 24px)}
+  .customer-quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:390px){
+  .top{gap:5px;padding-left:9px!important;padding-right:9px!important}
+  .top>div:first-child{font-size:12px!important}
+  .top .actions .btn{font-size:10px!important;padding:6px!important}
+  .content,body.admin-mode .content,body.customer-mode .content{padding-left:10px;padding-right:10px}
+  .bottomnav button{flex-basis:68px!important;width:68px;max-width:68px!important;min-width:68px!important;font-size:9px!important}
+  .cards{gap:7px}
+  .card,body.admin-mode .card{padding:11px}
+  .metric{font-size:22px!important}
+}
+@media(min-width:701px) and (max-width:1100px){
+  .app,body.admin-mode .app,body.customer-mode .app{grid-template-columns:205px minmax(0,1fr)}
+  .side{padding:18px 10px}
+  .content,body.admin-mode .content,body.customer-mode .content{padding:22px}
+  .tablewrap{max-width:100%;overflow-x:auto}
+}
 </style></head>
 <body><div class="app"><aside class="side"><div class="brand"><img src="menjaimut.jpg" alt="Logo Menja i Mut"><div><b>MENJA I MUT</b><small>PIZZA LAB</small></div></div><div class="nav" id="nav"></div><div class="sidefoot" id="sessionInfo">Gestionale online</div></aside><main class="main"><header class="top"><div><b>MENJA I MUT</b> <small>GESTIONALE</small></div><div class="actions"><button class="btn" onclick="importBackup()">Importa backup</button><button class="btn" onclick="exportData()">Esporta dati</button><button class="btn" id="signoutButton" onclick="signOut()" hidden>Esci</button></div></header><div id="ownerNotice" class="owner-notice" hidden></div><div id="ownerOrderNotice" class="owner-order-notice" hidden></div><section class="content" id="view"></section></main></div><nav class="bottomnav" id="bottom"></nav><div id="modal"></div>
 <script>
