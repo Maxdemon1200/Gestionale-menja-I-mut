@@ -476,5 +476,31 @@ navHTML=function menjaNavWithMobileEnhanceV50(){
  bottom.innerHTML=items.map(([name,icon])=>'<button class="'+(page===name?'active':'')+'" onclick="goCustomerPage(this.dataset.page)" data-page="'+name+'"><span>'+icon+'</span><b>'+(name==='Nuovo ordine'?'Ordina':name==='Storico ordini'?'Ordini':name==='Punti fidelity'?'Punti':name)+'</b></button>').join('')+'<button class="mobile-more-button" onclick="openMobileMore()"><span>☰</span><b>Altro</b></button>';
 }
 
+/* Ricerca clienti compatibile con le schede create nella versione mobile */
+window.filterRows=function(input){
+ const query=String(input?.value||'').trim().toLocaleLowerCase('it-IT').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');
+ const mobile=document.documentElement.classList.contains('touch-mobile')&&document.getElementById('view')?.dataset.mobilePage==='clienti';
+ if(mobile){
+  const list=document.querySelector('#view .mobile-record-list');
+  if(!list)return;
+  const cards=[...list.querySelectorAll('.mobile-record-card')];
+  let visible=0;
+  cards.forEach(card=>{
+   const searchable=String(card.innerText||'').toLocaleLowerCase('it-IT').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');
+   const match=!query||searchable.includes(query);
+   card.style.display=match?'':'none';
+   if(match)visible++;
+  });
+  let empty=document.getElementById('mobileCustomerSearchEmpty');
+  if(!empty){empty=document.createElement('div');empty.id='mobileCustomerSearchEmpty';empty.className='empty';empty.textContent='Nessun cliente corrisponde alla ricerca.';list.insertAdjacentElement('afterend',empty)}
+  empty.hidden=visible!==0;
+  return;
+ }
+ document.querySelectorAll('.table tbody tr').forEach(row=>{
+  const searchable=String(row.innerText||'').toLocaleLowerCase('it-IT').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');
+  row.style.display=!query||searchable.includes(query)?'':'none';
+ });
+};
+
 onlineClient?.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT'){activeUser=null;activeProfile=null;authScreen()}});
 startOnline();
