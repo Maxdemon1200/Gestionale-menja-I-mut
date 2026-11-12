@@ -339,8 +339,41 @@ input,select,textarea{font-size:16px}
   button,.btn,.smallbtn{touch-action:manipulation}
 }
 
+
+/* Android: forza il layout mobile anche quando la PWA apre un viewport desktop */
+html.touch-mobile,html.touch-mobile body{width:100%!important;min-width:0!important;overflow-x:hidden!important}
+html.touch-mobile .app{display:block!important;width:100%!important;min-height:100dvh!important}
+html.touch-mobile .side{display:none!important}
+html.touch-mobile .main{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important}
+html.touch-mobile .top{width:100%!important;min-height:58px;height:auto!important;padding:9px 12px!important;gap:8px;flex-wrap:wrap}
+html.touch-mobile .top .actions{display:flex;gap:5px;max-width:100%;overflow-x:auto}
+html.touch-mobile .top .actions .btn{min-height:40px;padding:7px 9px;font-size:11px;white-space:nowrap}
+html.touch-mobile #view{width:100%!important;max-width:100%!important;min-width:0!important}
+html.touch-mobile .content,html.touch-mobile body.admin-mode .content,html.touch-mobile body.customer-mode .content{width:100%!important;max-width:none!important;margin:0!important;padding:18px 12px calc(100px + env(safe-area-inset-bottom))!important}
+html.touch-mobile .cards{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+html.touch-mobile .two{grid-template-columns:minmax(0,1fr)!important}
+html.touch-mobile .card,html.touch-mobile .box{min-width:0!important;padding:13px!important}
+html.touch-mobile .tablewrap{width:100%!important;max-width:100%!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch}
+html.touch-mobile .table{min-width:620px}
+html.touch-mobile .bottomnav{display:flex!important;position:fixed!important;z-index:30!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;justify-content:flex-start!important;overflow-x:auto!important;gap:4px!important;padding:6px 8px calc(6px + env(safe-area-inset-bottom))!important;background:#121a15!important;border-top:1px solid #39483e!important}
+html.touch-mobile .bottomnav button{display:flex;flex:0 0 72px!important;width:72px!important;max-width:72px!important;min-width:72px!important;min-height:56px!important;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:6px 3px!important;font-size:10px!important;line-height:1.15}
+html.touch-mobile .bottomnav button span{font-size:19px!important}
+html.touch-mobile .head{align-items:flex-start!important;gap:10px;flex-wrap:wrap}
+html.touch-mobile .head h1{font-size:23px!important}
+html.touch-mobile .head .btn{min-height:42px;max-width:100%}
+html.touch-mobile .toolbar{flex-wrap:wrap;align-items:stretch}
+html.touch-mobile .toolbar>.field,html.touch-mobile .toolbar>input,html.touch-mobile .toolbar label{width:100%!important;max-width:100%!important;min-width:0!important}
+html.touch-mobile .formgrid{grid-template-columns:minmax(0,1fr)!important}
+html.touch-mobile .dialog{width:100%!important;max-width:620px;max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow:auto}
+html.touch-mobile input,html.touch-mobile select,html.touch-mobile textarea{font-size:16px!important;min-height:44px}
+html.touch-mobile .owner-notice,html.touch-mobile .owner-order-notice{margin:10px 12px 0!important;max-width:calc(100% - 24px)}
+@media(max-width:390px){html.touch-mobile .cards{grid-template-columns:1fr!important}}
+
 </style></head>
-<body><div class="app"><aside class="side"><div class="brand"><img src="menjaimut.jpg" alt="Logo Menja i Mut"><div><b>MENJA I MUT</b><small>PIZZA LAB</small></div></div><div class="nav" id="nav"></div><div class="sidefoot" id="sessionInfo">Gestionale online</div></aside><main class="main"><header class="top"><div><b>MENJA I MUT</b> <small>GESTIONALE</small></div><div class="actions"><button class="btn" onclick="importBackup()">Importa backup</button><button class="btn" onclick="exportData()">Esporta dati</button><button class="btn" id="signoutButton" onclick="signOut()" hidden>Esci</button></div></header><div id="ownerNotice" class="owner-notice" hidden></div><div id="ownerOrderNotice" class="owner-order-notice" hidden></div><section class="content" id="view"></section></main></div><nav class="bottomnav" id="bottom"></nav><div id="modal"></div>
+<body><script>
+/* Rileva lo smartphone anche se Android assegna alla PWA una larghezza desktop */
+(function(){try{var touch=('ontouchstart' in window)||(navigator.maxTouchPoints||0)>0;var sw=Math.min(screen.width||window.innerWidth,screen.height||window.innerHeight);if(touch&&sw<=900){document.documentElement.classList.add('touch-mobile');var vp=document.querySelector('meta[name="viewport"]');if(vp)vp.setAttribute('content','width=device-width, initial-scale=1, viewport-fit=cover');}}catch(e){} })();
+</script><div class="app"><aside class="side"><div class="brand"><img src="menjaimut.jpg" alt="Logo Menja i Mut"><div><b>MENJA I MUT</b><small>PIZZA LAB</small></div></div><div class="nav" id="nav"></div><div class="sidefoot" id="sessionInfo">Gestionale online</div></aside><main class="main"><header class="top"><div><b>MENJA I MUT</b> <small>GESTIONALE</small></div><div class="actions"><button class="btn" onclick="importBackup()">Importa backup</button><button class="btn" onclick="exportData()">Esporta dati</button><button class="btn" id="signoutButton" onclick="signOut()" hidden>Esci</button></div></header><div id="ownerNotice" class="owner-notice" hidden></div><div id="ownerOrderNotice" class="owner-order-notice" hidden></div><section class="content" id="view"></section></main></div><nav class="bottomnav" id="bottom"></nav><div id="modal"></div>
 <script>
 const sections=[['OPERATIVITÀ',['Dashboard','Ordini','Prenotazioni','Clienti']],['CATALOGO',['Prodotti','Listini']],['PRODUZIONE',['Produzione','Lotti produzione','Magazzino']],['CLIENTI',['Fidelity']],['AMMINISTRAZIONE',['Finanza','Fatture','Statistiche','Impostazioni']]];
 const icons={'Dashboard':'▦','Ordini':'▤','Prenotazioni':'▣','Clienti':'♙','Prodotti':'◉','Listini':'€','Produzione':'⚙','Lotti produzione':'▧','Magazzino':'▣','Fidelity':'✧','I miei listini':'€','Finanza':'◈','Fatture':'▤','Statistiche':'⌁','Impostazioni':'⚙'};
