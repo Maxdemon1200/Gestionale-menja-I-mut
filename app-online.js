@@ -466,9 +466,9 @@ function menjaMobileEnhanceV49(){
  root.dataset.mobilePage=String(page||'').toLowerCase().replace(/[^a-z0-9]+/g,'-');
 }
 const menjaOriginalRenderV49=render;
-function render(){menjaOriginalRenderV49();menjaMobileEnhanceV49()}
+render=function menjaRenderWithMobileEnhanceV50(){menjaOriginalRenderV49();menjaMobileEnhanceV49()};
 const menjaOriginalNavV49=navHTML;
-function navHTML(){
+navHTML=function menjaNavWithMobileEnhanceV50(){
  menjaOriginalNavV49();
  if(!document.documentElement.classList.contains('touch-mobile')||activeProfile?.role!=='customer')return;
  const bottom=document.getElementById('bottom');if(!bottom)return;
