@@ -198,6 +198,64 @@ body.customer-mode .dialogfoot{border-top:1px solid #e8e1d4;padding-top:14px}
  body.customer-mode .bottomnav button span{font-size:18px}
 }
 
+
+/* Layout adattivo: smartphone, tablet e desktop */
+@media(min-width:701px){
+ .app{min-height:100dvh}
+ .side{position:sticky;top:0;height:100dvh;overflow-y:auto}
+ .main{min-width:0}
+ .bottomnav{display:none!important}
+}
+@media(max-width:700px){
+ html,body{width:100%;min-width:0;overflow-x:hidden}
+ body{font-size:14px;-webkit-text-size-adjust:100%}
+ .app{display:block!important;min-height:100dvh}
+ .side{display:none!important}
+ .main{width:100%;min-width:0}
+ .top{height:auto;min-height:58px;padding:9px 12px;gap:8px;flex-wrap:wrap}
+ .top>div:first-child{font-size:13px}
+ .top .actions{display:flex;gap:5px;flex-wrap:nowrap}
+ .top .actions .btn{padding:7px 8px;font-size:11px;white-space:nowrap}
+ .content,body.admin-mode .content,body.customer-mode .content{width:100%;max-width:none;padding:18px 12px calc(94px + env(safe-area-inset-bottom))}
+ .head{align-items:flex-start!important;gap:10px;flex-wrap:wrap}
+ .head h1{font-size:23px!important}
+ .head .btn{max-width:48%;white-space:normal}
+ .cards{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px}
+ .card,.box,body.admin-mode .card,body.admin-mode .box,body.customer-mode .box{min-width:0;padding:13px;border-radius:13px}
+ .two{grid-template-columns:minmax(0,1fr)!important}
+ .toolbar{display:flex;align-items:stretch;flex-wrap:wrap;gap:8px}
+ .toolbar>.field,.toolbar>input{width:100%;max-width:none!important;flex:1 1 100%}
+ .toolbar label{width:100%;max-width:100%}
+ .tablewrap{width:100%;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+ .table{min-width:620px}
+ .formgrid{grid-template-columns:minmax(0,1fr)!important}
+ .formgrid .wide{grid-column:auto}
+ .dialog{width:min(100%,620px);max-height:calc(100dvh - 24px);padding:16px}
+ .modal{padding:12px;align-items:center}
+ .dialogfoot{flex-wrap:wrap}
+ .dialogfoot .btn{flex:1}
+ .field,select,textarea,body.customer-mode .field,body.customer-mode select,body.customer-mode textarea{font-size:16px;min-height:42px}
+ .bottomnav{display:flex!important;position:fixed;z-index:20;left:0;right:0;bottom:0;width:100%;padding:5px max(5px,env(safe-area-inset-right)) calc(5px + env(safe-area-inset-bottom)) max(5px,env(safe-area-inset-left));overflow-x:auto;justify-content:space-around;gap:2px}
+ .bottomnav button{min-width:0;flex:1 0 0;max-width:120px;padding:7px 2px;font-size:9px;white-space:normal}
+ .owner-notice,.owner-order-notice{margin:10px 12px 0}
+ body.admin-mode .top{height:auto;min-height:60px}
+ body.admin-mode .content{padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+ body.customer-mode .top{height:auto;min-height:58px}
+ body.customer-mode .content{padding-bottom:calc(105px + env(safe-area-inset-bottom))}
+}
+@media(max-width:380px){
+ .top .actions .btn{font-size:10px;padding:6px}
+ .top>div:first-child small{display:none}
+ .bottomnav button{font-size:8px}
+ .head h1{font-size:21px!important}
+ .cards{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(min-width:701px) and (max-width:1000px){
+ .app{grid-template-columns:210px minmax(0,1fr)}
+ .content{padding:22px}
+ .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
 </style></head>
 <body><div class="app"><aside class="side"><div class="brand"><img src="menjaimut.jpg" alt="Logo Menja i Mut"><div><b>MENJA I MUT</b><small>PIZZA LAB</small></div></div><div class="nav" id="nav"></div><div class="sidefoot" id="sessionInfo">Gestionale online</div></aside><main class="main"><header class="top"><div><b>MENJA I MUT</b> <small>GESTIONALE</small></div><div class="actions"><button class="btn" onclick="importBackup()">Importa backup</button><button class="btn" onclick="exportData()">Esporta dati</button><button class="btn" id="signoutButton" onclick="signOut()" hidden>Esci</button></div></header><div id="ownerNotice" class="owner-notice" hidden></div><div id="ownerOrderNotice" class="owner-order-notice" hidden></div><section class="content" id="view"></section></main></div><nav class="bottomnav" id="bottom"></nav><div id="modal"></div>
 <script>
@@ -239,7 +297,7 @@ function openNew(which=page){if(which==='Esporta report'){exportData();return}le
 function closeModal(){document.getElementById('modal').innerHTML=''}async function addRow(e,which){e.preventDefault();let obj=Object.fromEntries(new FormData(e.target));if(which==='Clienti'){try{let code;if(onlineClient){const{data,error}=await onlineClient.rpc('allocate_customer_code');if(error)throw error;code=data}else{let nums=db.customers.map(c=>parseInt(String(c.code||'').replace(/\D/g,''))||0);code='C'+String(Math.max(0,...nums)+1).padStart(3,'0')}obj.code=code;obj.fidelity_code=code;obj.points=0}catch(err){showError(err);return}}if(which==='Ordini'||which==='Prenotazioni')obj.code='ORD-'+String(Date.now()).slice(-6);let bucket={'Clienti':'customers','Prodotti':'products','Ricette':'recipes','Listini':'priceLists','Ordini':'orders','Prenotazioni':'orders','Lotti produzione':'lots','Magazzino':'inventory','Fidelity':'fidelity','Produzione':'production','Fatture':'invoices','Finanza':'events'}[which]||'events';if(which==='Clienti')obj.status=obj.status||'In attesa di abilitazione';if(which==='Ordini')obj.status=obj.status||'Da approvare';if(which==='Ordini'&&window.activeProfile?.role!=='admin')obj.customer=window.activeProfile.full_name||window.activeProfile.email;obj.id=crypto.randomUUID();db[bucket].push(obj);save();if(onlineClient)persistRecord(bucket,obj).catch(showError);closeModal();render()}
 function filterRows(inp){let q=inp.value.toLowerCase();document.querySelectorAll('.table tbody tr').forEach(r=>r.style.display=r.innerText.toLowerCase().includes(q)?'':'none')}
 function exportData(){let blob=new Blob([JSON.stringify({format:'menja-i-mut-backup-v1',exportedAt:new Date().toISOString(),data:db},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='menja-i-mut-backup.json';a.click();URL.revokeObjectURL(a.href)}
-</script><script src="app-online.js?v=41"></script><script>
+</script><script src="app-online.js?v=42"></script><script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(err => console.warn("Service worker non disponibile:", err));
