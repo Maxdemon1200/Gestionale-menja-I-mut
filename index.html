@@ -831,6 +831,39 @@ html.touch-mobile #mobileMoreList{padding-bottom:30px!important;overflow:visible
 html.touch-mobile .mobile-more-group>div{grid-template-columns:1fr!important}
 html.touch-mobile .mobile-more-group button{min-height:54px!important;font-size:16px!important}
 @media(min-width:701px){#mobileMenuToggle{display:none!important}}
+
+/* MENJA I MUT · intestazione smartphone centrata e libera dal pulsante menu */
+html.touch-mobile .top{
+ position:relative!important;
+ display:flex!important;
+ align-items:center!important;
+ justify-content:center!important;
+ padding-left:62px!important;
+ padding-right:12px!important;
+ box-sizing:border-box!important;
+}
+html.touch-mobile .top>div:first-child{
+ position:absolute!important;
+ left:50%!important;
+ top:50%!important;
+ transform:translate(-50%,-50%)!important;
+ width:calc(100% - 118px)!important;
+ max-width:calc(100% - 118px)!important;
+ margin:0!important;
+ text-align:center!important;
+ white-space:nowrap!important;
+ overflow:hidden!important;
+ text-overflow:ellipsis!important;
+}
+html.touch-mobile .top>div:first-child b{
+ display:inline!important;
+ font-size:clamp(13px,4vw,17px)!important;
+}
+html.touch-mobile .top>div:first-child small{
+ display:inline!important;
+ margin-left:4px!important;
+ font-size:clamp(9px,2.7vw,11px)!important;
+}
 </style></head>
 <body><script>
 /* Rileva lo smartphone anche se Android assegna alla PWA una larghezza desktop */
