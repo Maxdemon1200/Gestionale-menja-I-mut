@@ -188,7 +188,10 @@ async function archiveAdminCustomer(id){
    const {data,error}=await onlineClient.from('profiles').update({deleted_at:new Date().toISOString(),approval_status:'suspended'}).eq('id',id).select('id').single();
    if(error)throw error;if(!data)throw new Error('Cliente non archiviato: verifica i permessi.');
   }else{
-   const {error}=await onlineClient.from('records').delete().eq('id',id).eq('kind','customers');if(error)throw error;
+   const {data:record,error:readError}=await onlineClient.from('records').select('payload').eq('id',id).eq('kind','customers').single();
+   if(readError)throw readError;if(!record)throw new Error('Cliente non trovato.');
+   const payload={...(record.payload||{}),deleted_at:new Date().toISOString()};
+   const {error}=await onlineClient.from('records').update({payload}).eq('id',id).eq('kind','customers');if(error)throw error;
   }
   selectedAdminCustomerId=null;await loadOnlineData();page='Clienti';render();
  }catch(error){showError(error)}
@@ -197,14 +200,23 @@ async function restoreAdminCustomer(id){
  if(activeProfile?.role!=='admin')return;
  try{
   window.__menjaStage='ripristino cliente';
-  const {data,error}=await onlineClient.from('profiles').update({deleted_at:null,approval_status:'suspended'}).eq('id',id).select('id').single();
-  if(error)throw error;if(!data)throw new Error('Cliente non ripristinato.');
+  const customer=db.customers.find(c=>String(c.id)===String(id));
+  if(customer?.isProfile){
+   const {data,error}=await onlineClient.from('profiles').update({deleted_at:null,approval_status:'suspended'}).eq('id',id).select('id').single();
+   if(error)throw error;if(!data)throw new Error('Cliente non ripristinato.');
+  }else{
+   const {data:record,error:readError}=await onlineClient.from('records').select('payload').eq('id',id).eq('kind','customers').single();
+   if(readError)throw readError;if(!record)throw new Error('Cliente non trovato.');
+   const payload={...(record.payload||{}),deleted_at:null};
+   const {error}=await onlineClient.from('records').update({payload}).eq('id',id).eq('kind','customers');if(error)throw error;
+  }
   await loadOnlineData();render();
  }catch(error){showError(error)}
 }
 function toggleArchivedCustomers(){window.showArchivedCustomers=!window.showArchivedCustomers;render()}
 
 function openAdminCustomer(id){if(activeProfile?.role!=='admin')return;selectedAdminCustomerId=id;editingAdminOrderId=null;page='Scheda cliente';render()}
+function orderCustomerName(order){if(order?.customer&&String(order.customer).trim())return order.customer;const customer=db.customers.find(c=>String(c.id)===String(order?.customer_id));return customer?.name||order?.customer_name||order?.customer_email||'Cliente non identificato'}
 function adminCustomerOrders(customer){const code=String(customer?.code||customer?.fidelity_code||'').trim();const name=String(customer?.name||'').trim().toLocaleLowerCase('it-IT');return db.orders.filter(o=>{if(customer?.isProfile&&o.customer_id)return o.customer_id===customer.id;const orderCode=String(o.customer_code||'').trim();if(code&&orderCode)return code===orderCode;return String(o.customer||'').trim().toLocaleLowerCase('it-IT')===name})}
 
 function adminOrderEditor(order,customer){
