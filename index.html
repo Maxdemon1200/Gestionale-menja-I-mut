@@ -656,7 +656,7 @@ html.touch-mobile .mobile-record-actions button{flex:1 1 42%;min-width:0}
 </style></head>
 <body><script>
 /* Rileva lo smartphone anche se Android assegna alla PWA una larghezza desktop */
-(function(){try{var touch=('ontouchstart' in window)||(navigator.maxTouchPoints||0)>0;var sw=Math.min(screen.width||window.innerWidth,screen.height||window.innerHeight);if(touch&&sw<=900){document.documentElement.classList.add('touch-mobile');var vp=document.querySelector('meta[name="viewport"]');if(vp)vp.setAttribute('content','width=device-width, initial-scale=1, viewport-fit=cover');}}catch(e){} })();
+(function(){try{var touch=('ontouchstart' in window)||(navigator.maxTouchPoints||0)>0;var screenWidth=screen.width||window.innerWidth;var viewportWidth=window.innerWidth||screenWidth;var isCompactTouch=touch&&(screenWidth<=1400||viewportWidth<=900);if(isCompactTouch){document.documentElement.classList.add('touch-mobile');var vp=document.querySelector('meta[name="viewport"]');if(vp)vp.setAttribute('content','width=device-width, initial-scale=1, viewport-fit=cover');}}catch(e){} })();
 </script><div class="app"><aside class="side"><div class="brand"><img src="menjaimut.jpg" alt="Logo Menja i Mut"><div><b>MENJA I MUT</b><small>PIZZA LAB</small></div></div><div class="nav" id="nav"></div><div class="sidefoot" id="sessionInfo">Gestionale online</div></aside><main class="main"><header class="top"><div><b>MENJA I MUT</b> <small>GESTIONALE</small></div><div class="actions"><button class="btn" onclick="importBackup()">Importa backup</button><button class="btn" onclick="exportData()">Esporta dati</button><button class="btn" id="signoutButton" onclick="signOut()" hidden>Esci</button></div></header><div id="ownerNotice" class="owner-notice" hidden></div><div id="ownerOrderNotice" class="owner-order-notice" hidden></div><section class="content" id="view"></section></main></div><nav class="bottomnav" id="bottom"></nav><div id="mobileMore" class="mobile-more" hidden aria-hidden="true" onclick="if(event.target===this)closeMobileMore()"><section class="mobile-more-sheet"><div class="mobile-more-grip"></div><header><div><small>MENJA I MUT</small><h2>Tutte le funzioni</h2></div><button onclick="closeMobileMore()" aria-label="Chiudi">✕</button></header><div id="mobileMoreList"></div></section></div><div id="modal"></div>
 <script>
 const sections=[['OPERATIVITÀ',['Dashboard','Ordini','Prenotazioni','Clienti']],['CATALOGO',['Prodotti','Listini']],['PRODUZIONE',['Produzione','Lotti produzione','Magazzino']],['CLIENTI',['Fidelity']],['AMMINISTRAZIONE',['Finanza','Fatture','Statistiche','Impostazioni']]];
@@ -700,7 +700,9 @@ function exportData(){let blob=new Blob([JSON.stringify({format:'menja-i-mut-bac
 </script><script src="app-online.js?v=43"></script><script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(err => console.warn("Service worker non disponibile:", err));
+    navigator.serviceWorker.register("./sw.js", { scope: "./" }).then(registration => {
+      registration.update().catch(() => {});
+    }).catch(err => console.warn("Service worker non disponibile:", err));
   });
 }
 </script>
