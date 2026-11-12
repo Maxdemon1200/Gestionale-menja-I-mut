@@ -1,4 +1,4 @@
-const CACHE_NAME = "menjaimut-pwa-v49";
+const CACHE_NAME = "menjaimut-pwa-v50";
 const APP_SHELL = [
   "./",
   "./index.html",
