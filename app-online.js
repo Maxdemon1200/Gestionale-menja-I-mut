@@ -296,17 +296,27 @@ async function saveCustomerPriceLists(event){event.preventDefault();if(activePro
 async function saveAdminCustomerCode(event){
  event.preventDefault();
  if(activeProfile?.role!=='admin')return;
- const form=event.currentTarget;
+ const form=event.currentTarget?.tagName==='FORM'?event.currentTarget:event.target?.closest('form');
+ if(!form){showError(new Error('Modulo codice cliente non trovato.'));return}
  const customerId=form.dataset.customerId;
  const code=String(new FormData(form).get('customer_code')||'').trim().toUpperCase();
+ if(!customerId){showError(new Error('Identificativo cliente mancante.'));return}
  if(!/^C[0-9]+$/.test(code)){alert('Inserisci un codice nel formato C031, composto da C e numeri.');return}
+ const button=form.querySelector('button[type="submit"]');
+ const originalText=button?.textContent||'Salva codice';
+ if(button){button.disabled=true;button.textContent='Salvataggio...'}
+ window.__menjaStage='salvataggio codice cliente';
  try{
   const {data,error}=await onlineClient.rpc('change_customer_code',{p_customer_id:customerId,p_new_code:code});
   if(error)throw error;
   if(!data)throw new Error('Il database non ha confermato la modifica del codice.');
+  window.__menjaStage='aggiornamento elenco clienti';
   await loadOnlineData();
   render();
- }catch(error){showError(error)}
+ }catch(error){
+  showError(error);
+  if(button){button.disabled=false;button.textContent=originalText}
+ }
 }
 function adminCustomerPriceListBlock(customer){const assigned=Array.isArray(customer.price_list_ids)&&customer.price_list_ids.length?customer.price_list_ids:(customer.price_list_id?[customer.price_list_id]:[]);return '<form class="box" style="margin:16px 0" data-customer-id="'+esc(customer.id)+'" onsubmit="saveCustomerPriceLists(event)"><h2>Listini assegnati</h2><p class="muted">Puoi assegnare più listini allo stesso cliente. Seleziona tutti quelli che deve poter consultare.</p>'+(db.priceLists.length?db.priceLists.map(l=>'<label style="display:flex;align-items:center;gap:10px;margin:10px 0"><input type="checkbox" name="price_list_ids" value="'+esc(l.id)+'" '+(assigned.includes(l.id)?'checked':'')+'><span><strong>'+esc(l.name||'Listino senza nome')+'</strong>'+(l.description?'<small class="muted" style="display:block">'+esc(l.description)+'</small>':'')+'</span></label>').join(''):'<div class="empty">Non hai ancora creato listini. Vai nella sezione Listini per crearne uno.</div>')+'<div class="dialogfoot"><button class="btn gold" type="submit" '+(!db.priceLists.length?'disabled':'')+'>Salva assegnazioni</button></div></form>'}
 function customerPriceListPage(){const ids=Array.isArray(activeProfile?.price_list_ids)&&activeProfile.price_list_ids.length?activeProfile.price_list_ids:(activeProfile?.price_list_id?[activeProfile.price_list_id]:[]);const lists=db.priceLists.filter(x=>ids.includes(x.id));if(!lists.length)return '<div class="head"><div><h1>I miei listini</h1><div class="muted">Prezzi riservati al tuo account</div></div></div><div class="box empty">Non è ancora stato assegnato un listino al tuo account. Contatta il titolare per informazioni.</div>';return '<div class="head"><div><h1>I miei listini</h1><div class="muted">'+lists.length+' listin'+(lists.length===1?'o':'i')+' riservat'+(lists.length===1?'o':'i')+' al tuo account</div></div></div>'+lists.map(list=>{const products=priceListProducts(list);return '<section class="box" style="margin-bottom:16px"><h2>'+esc(list.name||'Listino senza nome')+'</h2>'+(list.description?'<p class="muted">'+esc(list.description)+'</p>':'')+(products.length?table(['Prodotto','Prezzo unitario'],products.map(p=>[esc(p.product),'€ '+Number(p.price||0).toFixed(2)])):'<div class="empty">Il listino non contiene ancora prodotti.</div>')+'</section>'}).join('')}
