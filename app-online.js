@@ -296,23 +296,37 @@ async function saveCustomerPriceLists(event){event.preventDefault();if(activePro
 async function saveAdminCustomerCode(event){
  event.preventDefault();
  if(activeProfile?.role!=='admin')return;
- const form=event.currentTarget?.tagName==='FORM'?event.currentTarget:event.target?.closest('form');
- if(!form){showError(new Error('Modulo codice cliente non trovato.'));return}
- const customerId=form.dataset.customerId;
+ const form=event.currentTarget;
+ const customerId=String(form?.dataset?.customerId||'');
  const code=String(new FormData(form).get('customer_code')||'').trim().toUpperCase();
  if(!customerId){showError(new Error('Identificativo cliente mancante.'));return}
  if(!/^C[0-9]+$/.test(code)){alert('Inserisci un codice nel formato C031, composto da C e numeri.');return}
+ const customer=db.customers.find(c=>String(c.id)===customerId);
+ if(!customer){showError(new Error('Il cliente selezionato non è presente nell’elenco aggiornato. Ricarica la pagina e riprova.'));return}
+ const duplicate=db.customers.find(c=>String(c.id)!==customerId&&String(c.code||c.fidelity_code||'').trim().toUpperCase()===code);
+ if(duplicate){alert('Il codice '+code+' è già assegnato a '+(duplicate.name||duplicate.email||'un altro cliente')+'. Scegli un codice diverso.');return}
  const button=form.querySelector('button[type="submit"]');
  const originalText=button?.textContent||'Salva codice';
  if(button){button.disabled=true;button.textContent='Salvataggio...'}
  window.__menjaStage='salvataggio codice cliente';
  try{
-  const {data,error}=await onlineClient.rpc('change_customer_code',{p_customer_id:customerId,p_new_code:code});
-  if(error)throw error;
-  if(!data)throw new Error('Il database non ha confermato la modifica del codice.');
+  if(customer.isProfile){
+   const {data,error}=await onlineClient.from('profiles').update({customer_code:code}).eq('id',customerId).select('id,customer_code').single();
+   if(error)throw error;
+   if(!data)throw new Error('Il database non ha restituito il cliente aggiornato.');
+  }else{
+   const {data:record,error:readError}=await onlineClient.from('records').select('payload').eq('id',customerId).eq('kind','customers').eq('owner_id',activeUser.id).single();
+   if(readError)throw readError;
+   if(!record)throw new Error('Non trovo la scheda del cliente manuale da aggiornare.');
+   const payload={...(record.payload||{}),code,fidelity_code:code};
+   const {data,error}=await onlineClient.from('records').update({payload}).eq('id',customerId).eq('kind','customers').eq('owner_id',activeUser.id).select('id').single();
+   if(error)throw error;
+   if(!data)throw new Error('Il database non ha confermato il salvataggio del cliente manuale.');
+  }
   window.__menjaStage='aggiornamento elenco clienti';
   await loadOnlineData();
   render();
+  alert('Codice cliente '+code+' salvato correttamente.');
  }catch(error){
   showError(error);
   if(button){button.disabled=false;button.textContent=originalText}
