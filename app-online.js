@@ -1274,7 +1274,7 @@ async function menjaManualBackup(){
  try{
   const snapshot=await menjaCaptureBackup();snapshot.id='manual-'+Date.now();snapshot.backup_type='manual';
   await menjaBackupPut(snapshot);menjaDownloadBackup(snapshot);await menjaRefreshBackupList();
-  alert('Backup creato e scaricato. Copia il file anche su un dispositivo o cloud esterno: la copia automatica del browser resta su questo dispositivo.');
+  alert('Backup completo creato e scaricato.\n\nRecord: '+snapshot.counts.records+'\nProfili: '+snapshot.counts.profiles+'\nMessaggi: '+snapshot.counts.chat_messages+'\nNotifiche: '+snapshot.counts.notifications+'\nAllegati: '+snapshot.counts.storage_attachments+'\n\n'+(snapshot.warnings.length?'ATTENZIONE:\n'+snapshot.warnings.join('\n')+'\n\n':'')+'Conserva il file anche su un dispositivo o cloud esterno.');
  }catch(error){showError(error)}
 }
 async function menjaRunDailyBackup(){
