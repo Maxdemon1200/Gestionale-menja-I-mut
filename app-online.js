@@ -1011,6 +1011,9 @@ async function signOut(){if(ownerNoticeTimer){clearInterval(ownerNoticeTimer);ow
 async function approveProfile(id,status){try{const value=({Attivo:'approved','In attesa di abilitazione':'pending',Sospeso:'suspended',Rifiutato:'rejected'})[status]||'approved';const {error}=await onlineClient.from('profiles').update({approval_status:value}).eq('id',id);if(error)throw error;await loadOnlineData();await refreshOwnerNotice();render()}catch(e){showError(e)}}
 
 async function menjaAwardFidelityForPaidOrder(order){
+ window.__menjaFidelityAwardLocks=window.__menjaFidelityAwardLocks||{};
+ const lockKey=String(order.id);if(window.__menjaFidelityAwardLocks[lockKey])return;window.__menjaFidelityAwardLocks[lockKey]=true;
+ try{
  if(activeProfile?.role!=='admin'||!onlineClient)throw new Error('Accredito fidelity non autorizzato.');
  if(String(order.status)!=='Pagato'||(!order.delivered_at&&String(order.status)!=='Consegnato'))throw new Error('La fidelity viene accreditata solo dopo consegna e pagamento.');
  const lines=Array.isArray(order.lines)?order.lines:[];
@@ -1021,15 +1024,15 @@ async function menjaAwardFidelityForPaidOrder(order){
  if(customerId){const result=await onlineClient.from('profiles').select('id,customer_type,fidelity_points').eq('id',customerId).maybeSingle();if(result.error)throw result.error;profile=result.data}
  if(!profile&&order.customer_code){const result=await onlineClient.from('profiles').select('id,customer_type,fidelity_points').eq('customer_code',order.customer_code).maybeSingle();if(result.error)throw result.error;profile=result.data;customerId=profile?.id||null}
  if(!profile&&order.customer_email){const result=await onlineClient.from('profiles').select('id,customer_type,fidelity_points').eq('email',order.customer_email).maybeSingle();if(result.error)throw result.error;profile=result.data;customerId=profile?.id||null}
- if(!profile||profile.customer_type!=='privato')return;
+ if(!profile||profile.customer_type==='azienda')return;
  const movementId='fidelity-order-'+String(order.id);
  const existing=db.fidelity.find(m=>String(m.order_id||'')===String(order.id)||String(m.id||'')===movementId);
  if(existing)return;
  const points=Math.round(quantity);
  const current=Math.max(0,Number(profile.fidelity_points)||0);
  const movement={id:movementId,order_id:String(order.id),customer_id:String(customerId),customer:orderCustomerName(order),code:order.customer_code||'',date:new Date().toISOString(),points,note:'Accredito automatico: '+points+' '+(points===1?'punto':'punti')+' per '+quantity+' basi dell’ordine '+(order.code||order.id),type:'accredito_ordine'};
- const {error:profileError}=await onlineClient.from('profiles').update({fidelity_points:current+points}).eq('id',customerId).select('id').maybeSingle();
- if(profileError)throw profileError;
+ const {data:profileUpdated,error:profileError}=await onlineClient.from('profiles').update({fidelity_points:current+points}).eq('id',customerId).select('id').maybeSingle();
+ if(profileError)throw profileError;if(!profileUpdated)throw new Error('Saldo punti non aggiornato: profilo cliente non modificato.');
  try{await persistRecord('fidelity',movement)}catch(error){
   await onlineClient.from('profiles').update({fidelity_points:current}).eq('id',customerId);
   throw error;
@@ -1037,6 +1040,7 @@ async function menjaAwardFidelityForPaidOrder(order){
  db.fidelity.unshift(movement);
  const customer=db.customers.find(c=>String(c.id)===String(customerId));if(customer){customer.points=current+points;customer.fidelity_points=current+points}
  console.info('Punti fidelity accreditati:',{order_id:order.id,customer_id:customerId,points});
+ }finally{delete window.__menjaFidelityAwardLocks[lockKey]}
 }
 
 async function setOrderStatus(id,status){
