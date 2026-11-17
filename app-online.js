@@ -793,6 +793,19 @@ function menjaLotSoldAllocations(){
 function menjaLotSoldQuantity(lot,allocations){
  return allocations.get(String(lot.id))||0;
 }
+function menjaLotExpiryAlerts(){
+ if(activeProfile?.role!=='admin')return [];
+ const today=new Date();today.setHours(0,0,0,0);
+ const horizon=new Date(today);horizon.setDate(horizon.getDate()+7);
+ const allocations=menjaLotSoldAllocations();
+ const parseDate=value=>{const raw=String(value||'').trim();if(!raw)return null;const m=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);let d;if(m)d=new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));else{const x=new Date(raw);if(Number.isNaN(x.getTime()))return null;d=new Date(x.getFullYear(),x.getMonth(),x.getDate())}return Number.isNaN(d.getTime())?null:d};
+ return db.lots.filter(lot=>{const expiry=parseDate(lot.expiry);return expiry&&expiry<=horizon&&menjaLotAvailableQty(lot,allocations)>0}).map(lot=>{const expiry=parseDate(lot.expiry),days=Math.round((expiry-today)/86400000);return {...lot,alertExpiry:expiry,daysToExpiry:days,remaining:menjaLotAvailableQty(lot,allocations)}}).sort((a,b)=>a.alertExpiry-b.alertExpiry);
+}
+function menjaLotExpiryAlertPanel(){
+ const alerts=menjaLotExpiryAlerts();if(!alerts.length)return '<section class="box"><h2>Allerte scadenza</h2><div class="empty">Nessun lotto invenduto in scadenza nei prossimi 7 giorni.</div></section>';
+ const rows=alerts.map(lot=>'<tr><td><strong>'+esc(lot.product||'Prodotto')+'</strong></td><td>'+esc(lot.code||'—')+'</td><td>'+lot.alertExpiry.toLocaleDateString('it-IT')+'</td><td><strong>'+lot.remaining.toLocaleString('it-IT')+' '+esc(lot.unit||'pezzi')+'</strong></td><td>'+(lot.daysToExpiry<0?'<span style="color:#b42318;font-weight:800">SCADUTO da '+Math.abs(lot.daysToExpiry)+' gg</span>':lot.daysToExpiry===0?'<span style="color:#b42318;font-weight:800">Scade oggi</span>':'Scade tra '+lot.daysToExpiry+' gg')+'</td></tr>').join('');
+ return '<section class="box" style="border:1px solid #dc2626"><h2 style="color:#b42318;margin-top:0">🔴 ALLERTE LOTTI IN SCADENZA ('+alerts.length+')</h2><p class="muted">Sono mostrati solo i lotti con giacenza residua positiva e data TMC/scadenza entro i prossimi 7 giorni. I lotti già scaduti restano segnalati finché hanno quantità invendute.</p><div class="tablewrap"><table class="table"><thead><tr><th>Tipo / prodotto</th><th>Lotto</th><th>Scadenza</th><th>Ancora invendute</th><th>Allerta</th></tr></thead><tbody>'+rows+'</tbody></table></div></section>';
+}
 function menjaWarehousePage(){
  if(activeProfile?.role!=='admin')return '<div class="box">Accesso non consentito.</div>';
  const lots=db.lots.slice().sort((a,b)=>String(b.production_date||b.date||b.created_at||'').localeCompare(String(a.production_date||a.date||a.created_at||'')));
@@ -804,7 +817,7 @@ function menjaWarehousePage(){
  }).join('');
  const totals=lots.reduce((acc,lot)=>{const p=Math.max(0,Number(lot.qty)||0),s=menjaLotSoldQuantity(lot,soldAllocations);acc.produced+=p;acc.sold+=s;acc.stock+=p-s;return acc},{produced:0,sold:0,stock:0});
  const summary=(label,value)=>'<div class="box"><small class="muted">'+label+'</small><h2 style="margin:6px 0 0">'+value.toLocaleString('it-IT')+'</h2><small class="muted">pezzi</small></div>';
- return head('Magazzino','Giacenza delle basi per lotto: produzione meno ordini confermati; i valori negativi indicano vendite oltre la produzione')+'<div class="grid three" style="margin-bottom:16px">'+summary('BASI PRODOTTE',totals.produced)+summary('BASI IMPEGNATE',totals.sold)+summary('GIACENZA NETTA',totals.stock)+'</div><div class="box"><div class="toolbar"><input class="field" placeholder="Cerca per lotto, prodotto o data" oninput="filterWarehouseLots(this)"><span class="muted">'+lots.length+' lotti</span></div>'+(lots.length?'<div class="tablewrap"><table class="table" id="warehouseLotsTable"><thead><tr><th>Lotto</th><th>Prodotto</th><th>Data</th><th>Prodotte</th><th>Vendute</th><th>Giacenza (+ / −)</th><th>Stato lotto</th></tr></thead><tbody>'+rows+'</tbody></table></div><div class="empty" id="warehouseSearchEmpty" hidden>Nessun lotto trovato.</div>':'<div class="empty">Non ci sono ancora lotti di produzione. Registra un lotto nell’area Lotti produzione: le quantità compariranno qui.</div>')+'</div><p class="muted">Le basi vengono impegnate automaticamente quando l’ordine passa a “Confermato” (o a uno stato successivo). Se l’ordine viene rifiutato o torna “Da approvare”, le quantità rientrano nella giacenza.</p>';
+ return head('Magazzino','Giacenza delle basi per lotto: produzione meno ordini confermati; i valori negativi indicano vendite oltre la produzione')+menjaLotExpiryAlertPanel()+'<div class="grid three" style="margin-bottom:16px">'+summary('BASI PRODOTTE',totals.produced)+summary('BASI IMPEGNATE',totals.sold)+summary('GIACENZA NETTA',totals.stock)+'</div><div class="box"><div class="toolbar"><input class="field" placeholder="Cerca per lotto, prodotto o data" oninput="filterWarehouseLots(this)"><span class="muted">'+lots.length+' lotti</span></div>'+(lots.length?'<div class="tablewrap"><table class="table" id="warehouseLotsTable"><thead><tr><th>Lotto</th><th>Prodotto</th><th>Data</th><th>Prodotte</th><th>Vendute</th><th>Giacenza (+ / −)</th><th>Stato lotto</th></tr></thead><tbody>'+rows+'</tbody></table></div><div class="empty" id="warehouseSearchEmpty" hidden>Nessun lotto trovato.</div>':'<div class="empty">Non ci sono ancora lotti di produzione. Registra un lotto nell’area Lotti produzione: le quantità compariranno qui.</div>')+'</div><p class="muted">Le basi vengono impegnate automaticamente quando l’ordine passa a “Confermato” (o a uno stato successivo). Se l’ordine viene rifiutato o torna “Da approvare”, le quantità rientrano nella giacenza.</p>';
 }
 function filterWarehouseLots(input){
  const query=String(input.value||'').trim().toLocaleLowerCase('it-IT');
@@ -1100,6 +1113,16 @@ window.filterRows=function(input){
  });
 };
 
+const menjaNavBeforeExpiryAlerts=navHTML;
+navHTML=function menjaNavWithLotExpiryAlerts(){
+ menjaNavBeforeExpiryAlerts();
+ if(activeProfile?.role!=='admin')return;
+ const count=menjaLotExpiryAlerts().length,nav=document.getElementById('nav');if(!nav)return;
+ const button=[...nav.querySelectorAll('button')].find(el=>el.textContent.trim().startsWith('Magazzino'));
+ if(!button)return;
+ button.querySelector('.lot-expiry-nav-dot')?.remove();
+ if(count){const dot=document.createElement('span');dot.className='lot-expiry-nav-dot';dot.title=count+' lotti invenduti in scadenza';dot.textContent=String(count);dot.style.cssText='display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;margin-left:auto;border-radius:50px;background:#dc2626;color:#fff;font-size:11px;font-weight:800';button.appendChild(dot)}
+};
 onlineClient?.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT'){activeUser=null;activeProfile=null;authScreen()}});
 startOnline();
 
