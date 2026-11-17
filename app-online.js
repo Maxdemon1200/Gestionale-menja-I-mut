@@ -555,7 +555,26 @@ function adminFinancePage(){const paid=db.orders.filter(o=>o.status==='Pagato').
 function customerNotificationsPanel(){
  const notifications=Array.isArray(db.notifications)?db.notifications:[];
  const unread=notifications.filter(n=>!n.read_at).length;
- return '<section class="box" style="margin:16px 0"><h2>🔔 Notifiche'+(unread?' · '+unread+' nuove':'')+'</h2>'+(notifications.length?notifications.slice(0,8).map(n=>'<article style="padding:12px 0;border-top:1px solid var(--line);'+(!n.read_at?'font-weight:600':'')+'"><strong>'+esc(n.title||'Aggiornamento ordine')+'</strong><p style="margin:5px 0">'+esc(n.body||'')+'</p><small class="muted">'+new Date(n.created_at).toLocaleString('it-IT')+'</small>'+(n.read_at?'':' <button class="btn" style="margin-left:8px;padding:5px 9px" onclick="markCustomerNotificationRead(\''+n.id+'\')">Segna come letta</button>')+'</article>').join(''):'<p class="muted">Non hai ancora ricevuto notifiche sugli ordini.</p>')+'</section>';
+ return '<section class="box" style="margin:16px 0"><h2>🔔 Notifiche'+(unread?' · '+unread+' nuove':'')+'</h2><p class="muted">Attiva le notifiche per ricevere sul telefono o sul computer gli aggiornamenti anche quando il gestionale non è aperto.</p><button class="btn gold" type="button" onclick="enableCustomerPushNotifications()">Attiva notifiche sul dispositivo</button>'+(notifications.length?notifications.slice(0,8).map(n=>'<article style="padding:12px 0;border-top:1px solid var(--line);'+(!n.read_at?'font-weight:600':'')+'"><strong>'+esc(n.title||'Aggiornamento ordine')+'</strong><p style="margin:5px 0">'+esc(n.body||'')+'</p><small class="muted">'+new Date(n.created_at).toLocaleString('it-IT')+'</small>'+(n.read_at?'':' <button class="btn" style="margin-left:8px;padding:5px 9px" onclick="markCustomerNotificationRead(\\''+n.id+'\\')">Segna come letta</button>')+'</article>').join(''):'<p class="muted">Non hai ancora ricevuto notifiche sugli ordini.</p>')+'</section>';
+}
+async function enableCustomerPushNotifications(){
+ try{
+  if(!activeUser||activeProfile?.role!=='customer')throw new Error('Accedi con il tuo account cliente per attivare le notifiche.');
+  if(!('serviceWorker' in navigator)||!('Notification' in window))throw new Error('Questo browser non supporta le notifiche push.');
+  if(!window.firebase)throw new Error('Il servizio notifiche non è ancora caricato. Aggiorna la pagina e riprova.');
+  if(firebase.messaging?.isSupported&&!await firebase.messaging.isSupported())throw new Error('Questo browser non supporta Firebase Web Push. Su iPhone usa il gestionale installato nella schermata Home e aggiorna iOS.');
+  const permission=await Notification.requestPermission();
+  if(permission!=='granted')throw new Error('Permesso notifiche non concesso. Abilitalo nelle impostazioni del browser.');
+  const firebaseConfig={apiKey:'AIzaSyCGnhppVUBNrsFimsNgxTHw2cqltMm0fF4',authDomain:'menja-i-mut-gestionale.firebaseapp.com',projectId:'menja-i-mut-gestionale',storageBucket:'menja-i-mut-gestionale.firebasestorage.app',messagingSenderId:'825562456235',appId:'1:825562456235:web:096d370ed9f6cbd5ca17ee',measurementId:'G-Q7MD73ZC1C'};
+  if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
+  const registration=await navigator.serviceWorker.ready;
+  const messaging=firebase.messaging();
+  const token=await messaging.getToken({vapidKey:'BGI6IAUpgKYaFy0jW_ofS_JsYU4QAneERCYyk51F1-JPugDMThGNgIVNHfGWUavZYlSZMY32EzEMRQY7I3-7FSw',serviceWorkerRegistration:registration});
+  if(!token)throw new Error('Firebase non ha restituito il token del dispositivo.');
+  const{error}=await onlineClient.from('fcm_tokens').upsert({user_id:activeUser.id,token,platform:/iPhone|iPad|iPod/i.test(navigator.userAgent)?'ios-web':'web',updated_at:new Date().toISOString()},{onConflict:'token'});
+  if(error)throw error;
+  alert('Notifiche attivate su questo dispositivo. Riceverai gli aggiornamenti degli ordini anche con il gestionale chiuso, se il browser o il sistema operativo consente le notifiche in background.');
+ }catch(error){console.error('Attivazione notifiche push:',error);alert(error?.message||'Non è stato possibile attivare le notifiche.')}
 }
 async function markCustomerNotificationRead(id){
  const{error}=await onlineClient.from('notifications').update({read_at:new Date().toISOString()}).eq('id',id);
@@ -586,7 +605,7 @@ async function setOrderStatus(id,status){
    let customerId=item.customer_id||null;
    if(!customerId&&item.customer_code){const{data:profile}=await onlineClient.from('profiles').select('id').eq('customer_code',item.customer_code).maybeSingle();customerId=profile?.id||null}
    if(!customerId&&item.customer_email){const{data:profile}=await onlineClient.from('profiles').select('id').eq('email',item.customer_email).maybeSingle();customerId=profile?.id||null}
-   if(customerId){const accepted=status==='Confermato';const{error:notificationError}=await onlineClient.from('notifications').insert({user_id:customerId,order_id:String(item.id),order_code:String(item.code||''),notification_type:accepted?'order_accepted':'order_rejected',title:accepted?'Ordine accettato':'Ordine rifiutato',body:accepted?'Il tuo ordine '+(item.code||'')+' è stato confermato dal titolare.':'Il tuo ordine '+(item.code||'')+' non è stato accettato dal titolare.'});if(notificationError)console.error('Stato ordine aggiornato ma notifica cliente non salvata:',notificationError)}
+   if(customerId){const accepted=status==='Confermato';const title=accepted?'Ordine accettato':'Ordine rifiutato';const body=accepted?'Il tuo ordine '+(item.code||'')+' è stato confermato dal titolare.':'Il tuo ordine '+(item.code||'')+' non è stato accettato dal titolare.';const{error:notificationError}=await onlineClient.from('notifications').insert({user_id:customerId,order_id:String(item.id),order_code:String(item.code||''),notification_type:accepted?'order_accepted':'order_rejected',title,body});if(notificationError)console.error('Stato ordine aggiornato ma notifica cliente non salvata:',notificationError);else{const{data:pushResult,error:pushError}=await onlineClient.functions.invoke('send-order-push',{body:{user_id:customerId,title,body}});if(pushError)console.warn('Notifica push non inviata; notifica interna comunque salvata:',pushError);else console.info('Risultato notifica push:',pushResult)}}
   }
   item.status=status;if(status==='Pagato')item.paid_at=updatedPayload.paid_at;
   syncPendingOrderBadge();
