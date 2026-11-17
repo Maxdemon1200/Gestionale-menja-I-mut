@@ -536,7 +536,7 @@ function menjaLotSoldAllocations(){
     const key=String(line.product||line.name||'').trim().toLocaleLowerCase('it-IT'),quantity=Math.max(0,Number(line.quantity??line.qty)||0);
     if(!key||!quantity)continue;
     const explicitId=line.lot_id?String(line.lot_id):'';
-    if(explicitId){allocate(lotById.get(explicitId),quantity);continue}
+    if(explicitId){allocate(lotById.get(explicitId),quantity,true);continue}
     let pending=quantity;
     const productLots=lotsByProduct.get(key)||[];
     for(const lot of productLots){if(pending<=0)break;pending=allocate(lot,pending)}
