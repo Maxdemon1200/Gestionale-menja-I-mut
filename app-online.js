@@ -1054,14 +1054,14 @@ function companyProfileSettingsPage(){
  '<div class="wide"><h2>Dati identificativi</h2></div>'+
  field('business_name','Ragione sociale','text',true)+
  field('vat_number','Partita IVA')+field('tax_code','Codice fiscale')+
- field('recipient_code','Codice univoco SDI')+
+ field('recipient_code','Codice destinatario SDI/UNIVOCO')+
  field('legal_representative','Titolare / Legale rappresentante')+
  '<div class="wide"><h2>Sede legale</h2></div>'+
  field('registered_address','Via e numero civico','text',true)+
  field('registered_postcode','CAP')+field('registered_city','Comune')+field('registered_province','Provincia')+
  '<div class="wide"><h2>Contatti e fatturazione</h2></div>'+
  field('phone','Telefono','tel')+field('email','Email','email')+field('pec','PEC','email')+
- field('recipient_code','Codice destinatario SDI')+
+ 
  '<div class="wide actions" style="justify-content:flex-end"><span class="muted" style="margin-right:auto">Ultimo aggiornamento: '+esc(d.updated_at?new Date(d.updated_at).toLocaleString('it-IT'):'non ancora salvata')+'</span><button class="btn gold" type="submit">Salva anagrafica</button></div></form>'+
  '<div class="notice">Compila i dati riportati nei documenti ufficiali dell’azienda. I dati sono modificabili in qualsiasi momento.</div>';
 }
