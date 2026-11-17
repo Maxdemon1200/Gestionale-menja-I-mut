@@ -1,4 +1,5 @@
-var onlineClient=null, activeUser=null, activeProfile=null;let ownerNoticeTimer=null;const onlineKinds={customers:'customers',orders:'orders',products:'products',priceLists:'pricelists',recipes:'recipes',production:'production',lots:'lots',inventory:'inventory',fidelity:'fidelity',invoices:'invoices',events:'finance'};
+var onlineClient=null, activeUser=null, activeProfile=null;let ownerNoticeTimer=null;
+let adminKnownChatNotificationIds=null;const onlineKinds={customers:'customers',orders:'orders',products:'products',priceLists:'pricelists',recipes:'recipes',production:'production',lots:'lots',inventory:'inventory',fidelity:'fidelity',invoices:'invoices',events:'finance'};
 const buckets=Object.keys(onlineKinds);
 function showError(error){console.error('Menja i Mut diagnostic stage:',window.__menjaStage||'non definito',error);const detail=error?.stack?String(error.stack).split('\n').slice(0,5).join('\n'):'';alert(`Operazione non riuscita\nFase: ${window.__menjaStage||'non definita'}\n${error?.message||error}${detail?'\n\n'+detail:''}`)}
 function authScreen(message='Accedi o crea il tuo account'){
@@ -105,13 +106,32 @@ async function refreshOwnerOrders(){
   if(newlyArrived.length)showNewOrderNotice(newlyArrived);
  }catch(e){console.error('Controllo nuovi ordini non riuscito:',e)}
 }
+async function refreshAdminChatNotifications(){
+ if(activeProfile?.role!=='admin'||!onlineClient)return;
+ try{
+  const{data,error}=await onlineClient.from('notifications').select('id,title,body,notification_type,created_at').eq('notification_type','chat_message').order('created_at',{ascending:false}).limit(30);
+  if(error)throw error;
+  const fresh=data||[];
+  const newItems=adminKnownChatNotificationIds===null?[]:fresh.filter(n=>!adminKnownChatNotificationIds.has(String(n.id)));
+  adminKnownChatNotificationIds=new Set(fresh.map(n=>String(n.id)));
+  if(newItems.length){
+   const latest=newItems[0];
+   menjaPlayAlertSound();
+   if('Notification' in window&&Notification.permission==='granted'){
+    try{new Notification(latest.title||'Nuovo messaggio in chat',{body:latest.body||'Hai ricevuto un nuovo messaggio',tag:'menja-chat-'+latest.id})}catch(e){console.warn('Notifica chat amministratore non disponibile:',e)}
+   }
+  }
+ }catch(e){console.error('Aggiornamento notifiche chat amministratore non riuscito:',e)}
+}
 function startOwnerNoticeMonitoring(){
  if(ownerNoticeTimer){clearInterval(ownerNoticeTimer);ownerNoticeTimer=null}
  ownerKnownOrderIds=null;
  if(activeProfile?.role==='admin'){
+  adminKnownChatNotificationIds=null;
   refreshOwnerNotice();
   refreshOwnerOrders();
-  ownerNoticeTimer=setInterval(()=>{refreshOwnerNotice();refreshOwnerOrders()},15000);
+  refreshAdminChatNotifications();
+  ownerNoticeTimer=setInterval(()=>{refreshOwnerNotice();refreshOwnerOrders();refreshAdminChatNotifications()},15000);
  }else{
   const el=document.getElementById('ownerNotice');if(el){el.hidden=true;el.innerHTML=''}
   const orderEl=document.getElementById('ownerOrderNotice');if(orderEl){orderEl.hidden=true;orderEl.innerHTML=''}
@@ -598,7 +618,7 @@ function adminFinancePage(){const paid=db.orders.filter(o=>o.status==='Pagato').
 function customerNotificationsPanel(){
  const notifications=Array.isArray(db.notifications)?db.notifications:[];
  const unread=notifications.filter(n=>!n.read_at).length;
- return '<section class="box" style="margin:16px 0"><h2>🔔 Notifiche'+(unread?' · '+unread+' nuove':'')+'</h2><p class="muted">Attiva le notifiche per ricevere sul telefono o sul computer gli aggiornamenti anche quando il gestionale non è aperto.</p><button class="btn gold" type="button" onclick="enableCustomerPushNotifications()">Attiva notifiche sul dispositivo</button>'+menjaSoundToggleButton()+(notifications.length?notifications.slice(0,8).map(n=>'<article style="padding:12px 0;border-top:1px solid var(--line);'+(!n.read_at?'font-weight:600':'')+'"><strong>'+esc(n.title||'Aggiornamento ordine')+'</strong><p style="margin:5px 0">'+esc(n.body||'')+'</p><small class="muted">'+new Date(n.created_at).toLocaleString('it-IT')+'</small>'+(n.read_at?'':' <button class="btn" style="margin-left:8px;padding:5px 9px" onclick="markCustomerNotificationRead(this.dataset.id)" data-id="'+n.id+'"">Segna come letta</button>')+'</article>').join(''):'<p class="muted">Non hai ancora ricevuto notifiche sugli ordini.</p>')+'</section>';
+ return '<section class="box" style="margin:16px 0"><h2>🔔 Notifiche'+(unread?' · '+unread+' nuove':'')+'</h2><p class="muted">Attiva le notifiche per ordini e messaggi della chat, anche quando il gestionale non è aperto.</p><button class="btn gold" type="button" onclick="enableCustomerPushNotifications()">Attiva notifiche sul dispositivo</button>'+menjaSoundToggleButton()+(notifications.length?notifications.slice(0,8).map(n=>'<article style="padding:12px 0;border-top:1px solid var(--line);'+(!n.read_at?'font-weight:600':'')+'"><strong>'+esc(n.title||'Aggiornamento ordine')+'</strong><p style="margin:5px 0">'+esc(n.body||'')+'</p><small class="muted">'+new Date(n.created_at).toLocaleString('it-IT')+'</small>'+(n.read_at?'':' <button class="btn" style="margin-left:8px;padding:5px 9px" onclick="markCustomerNotificationRead(this.dataset.id)" data-id="'+n.id+'"">Segna come letta</button>')+'</article>').join(''):'<p class="muted">Non hai ancora ricevuto notifiche sugli ordini.</p>')+'</section>';
 }
 async function enableCustomerPushNotifications(){
  try{
