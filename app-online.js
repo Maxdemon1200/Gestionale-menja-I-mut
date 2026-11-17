@@ -1240,17 +1240,24 @@ async function menjaBackupDelete(id){
  await new Promise((resolve,reject)=>{const tx=dbx.transaction('snapshots','readwrite');tx.objectStore('snapshots').delete(id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});
  dbx.close();
 }
+async function menjaSelectAllRows(table,columns='*'){
+ const rows=[];let start=0;
+ while(true){
+  const {data,error}=await onlineClient.from(table).select(columns).order('id',{ascending:true}).range(start,start+499);
+  if(error)throw error;
+  const batch=data||[];rows.push(...batch);
+  if(batch.length<500)break;
+  start+=500;
+ }
+ return rows;
+}
 async function menjaCaptureBackup(){
  if(activeProfile?.role!=='admin'||!onlineClient)throw new Error('Backup disponibile solo per l’amministratore connesso.');
- const {data:records,error}=await onlineClient.from('records').select('id,kind,owner_id,payload,created_at');
- if(error)throw error;
- const {data:profiles,error:profileError}=await onlineClient.from('profiles').select('*');
- if(profileError)throw profileError;
+ const records=await menjaSelectAllRows('records','id,kind,owner_id,payload,created_at');
+ const profiles=await menjaSelectAllRows('profiles','*');
  let chatMessages=[],warnings=[];
- const chatResult=await onlineClient.from('chat_messages').select('*');
- if(chatResult.error)warnings.push('Messaggi chat non inclusi: permessi o tabella non disponibili.');
- else chatMessages=chatResult.data||[];
- return {format:'menja-i-mut-full-backup-v2',app:'Menja i Mut Gestionale',created_at:new Date().toISOString(),created_by:activeUser.id,records:records||[],profiles:profiles||[],chat_messages:chatMessages,warnings};
+ try{chatMessages=await menjaSelectAllRows('chat_messages','*')}catch(error){warnings.push('Messaggi chat non inclusi: '+(error?.message||'tabella o permessi non disponibili'))}
+ return {format:'menja-i-mut-full-backup-v2',app:'Menja i Mut Gestionale',created_at:new Date().toISOString(),created_by:activeUser.id,records,profiles,chat_messages:chatMessages,warnings};
 }
 function menjaDownloadBackup(snapshot){
  const blob=new Blob([JSON.stringify(snapshot,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');
@@ -1285,7 +1292,19 @@ async function menjaRefreshBackupList(){
 }
 async function menjaRestoreBackupObject(snapshot){
  if(activeProfile?.role!=='admin')throw new Error('Ripristino consentito solo al titolare.');
- if(snapshot?.format!=='menja-i-mut-full-backup-v2'||!Array.isArray(snapshot.records))throw new Error('File non riconosciuto: serve un backup completo Menja i Mut.');
+ if(snapshot?.format==='menja-i-mut-backup-v1'){
+  const legacy=snapshot.data||{},records=[],profiles=[];
+  for(const bucket of Object.keys(onlineKinds)){
+   if(bucket==='auditLogs')continue;
+   for(const item of (legacy[bucket]||[])){
+    if(bucket==='customers'&&item.isProfile){profiles.push({id:item.id,full_name:item.name,email:item.email,category:item.category,customer_type:item.customer_type,vat_number:item.vat_number,street_address:item.street_address,recipient_code_or_pec:item.recipient_code_or_pec,phone:item.phone,customer_code:item.code,fidelity_points:item.points,price_list_id:item.price_list_id,price_list_ids:item.price_list_ids,deleted_at:item.deleted_at});continue}
+    const id=String(item.id||crypto.randomUUID()),payload={...item};delete payload.owner_id;delete payload.isProfile;
+    records.push({id,kind:onlineKinds[bucket],owner_id:activeUser.id,payload,created_at:item.created_at||new Date().toISOString()});
+   }
+  }
+  snapshot={format:'menja-i-mut-full-backup-v2',created_at:snapshot.exportedAt||new Date().toISOString(),id:'legacy-import',records,profiles,chat_messages:[],warnings:['Backup storico convertito: chat non inclusa.']};
+ }
+ if(snapshot?.format!=='menja-i-mut-full-backup-v2'||!Array.isArray(snapshot.records))throw new Error('File non riconosciuto: serve un backup Menja i Mut (v1 o v2).');
  const records=snapshot.records,profiles=Array.isArray(snapshot.profiles)?snapshot.profiles:[],chats=Array.isArray(snapshot.chat_messages)?snapshot.chat_messages:[];
  if(!confirm('Ripristinare il backup del '+new Date(snapshot.created_at||Date.now()).toLocaleString('it-IT')+'?\n\nI dati saranno uniti a quelli attuali: non verranno cancellati record più recenti o non presenti nel backup.'))return;
  for(let start=0;start<records.length;start+=100){
