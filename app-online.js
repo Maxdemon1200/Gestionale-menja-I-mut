@@ -262,6 +262,7 @@ async function archiveAdminCustomer(id){
    const payload={...(record.payload||{}),deleted_at:new Date().toISOString()};
    const {error}=await onlineClient.from('records').update({payload}).eq('id',id).eq('kind','customers');if(error)throw error;
   }
+  await menjaWriteAudit('archiviato',customer.isProfile?'profiles':'customers',id,customer,{...customer,deleted_at:new Date().toISOString()});
   selectedAdminCustomerId=null;await loadOnlineData();page='Clienti';render();
  }catch(error){showError(error)}
 }
@@ -279,6 +280,7 @@ async function restoreAdminCustomer(id){
    const payload={...(record.payload||{}),deleted_at:null};
    const {error}=await onlineClient.from('records').update({payload}).eq('id',id).eq('kind','customers');if(error)throw error;
   }
+  await menjaWriteAudit('ripristinato',customer?.isProfile?'profiles':'customers',id,customer,{...customer,deleted_at:null});
   await loadOnlineData();render();
  }catch(error){showError(error)}
 }
@@ -294,6 +296,7 @@ async function deleteAdminOrder(id){
   window.__menjaStage='eliminazione ordine';
   const {data,error}=await onlineClient.from('records').delete().eq('id',id).eq('kind','orders').select('id').maybeSingle();
   if(error)throw error;if(!data)throw new Error('Ordine non eliminato: verifica i permessi.');
+  await menjaWriteAudit('eliminato','orders',id,order,null);
   db.orders=db.orders.filter(o=>String(o.id)!==String(id));
   const customerProfile=db.customers.find(c=>c.isProfile&&(String(c.id)===String(order.customer_id)||String(c.email||'')===String(order.customer_email||'')||(order.customer_code&&String(c.code||'')===String(order.customer_code))||(order.customer&&String(c.name||'').trim().toLocaleLowerCase('it-IT')===String(order.customer).trim().toLocaleLowerCase('it-IT'))));
   const recipientId=order.customer_id||customerProfile?.id||null;
@@ -373,7 +376,7 @@ function cancelPriceListEdit(){priceListDraft=null;selectedPriceListId=null;rend
 function addPriceListLine(){if(!priceListDraft)return;const host=document.getElementById('priceListLines');if(host)host.insertAdjacentHTML('beforeend',priceListLineHTML({},db.products.filter(p=>p.active!==false)))}
 function removePriceListLine(button){button.closest('.price-list-line')?.remove()}
 async function savePriceList(event){event.preventDefault();if(activeProfile?.role!=='admin'||!priceListDraft)return;const form=event.currentTarget,values=Object.fromEntries(new FormData(form));const ids=[...form.querySelectorAll('select[name="product_id"]')].map(x=>x.value),prices=[...form.querySelectorAll('input[name="price"]')].map(x=>x.value);if(!ids.length){alert('Aggiungi almeno un prodotto al listino.');return}if(ids.some(id=>!id)||new Set(ids).size!==ids.length){alert('Seleziona prodotti validi e non ripetuti.');return}const lines=ids.map((id,i)=>{const p=db.products.find(x=>x.id===id);if(!p)throw new Error('Prodotto non trovato');return {product_id:id,product:p.name,price:Number(prices[i])}});const list={...(db.priceLists.find(x=>x.id===selectedPriceListId)||{}),id:selectedPriceListId||crypto.randomUUID(),name:String(values.name||'').trim(),description:String(values.description||'').trim(),products:lines,updated_at:new Date().toISOString()};try{await persistRecord(onlineKinds.priceLists,list);await loadOnlineData();priceListDraft=null;selectedPriceListId=null;render()}catch(e){showError(e)}}
-async function deletePriceList(id){if(activeProfile?.role!=='admin')return;if(db.customers.some(c=>(Array.isArray(c.price_list_ids)&&c.price_list_ids.length?c.price_list_ids:(c.price_list_id?[c.price_list_id]:[])).includes(id))){alert('Questo listino è assegnato a uno o più clienti. Riassegna prima quei clienti.');return}if(!confirm('Eliminare questo listino?'))return;try{const {error}=await onlineClient.from('records').delete().eq('id',id).eq('kind','pricelists');if(error)throw error;await loadOnlineData();render()}catch(e){showError(e)}}
+async function deletePriceList(id){if(activeProfile?.role!=='admin')return;if(db.customers.some(c=>(Array.isArray(c.price_list_ids)&&c.price_list_ids.length?c.price_list_ids:(c.price_list_id?[c.price_list_id]:[])).includes(id))){alert('Questo listino è assegnato a uno o più clienti. Riassegna prima quei clienti.');return}if(!confirm('Eliminare questo listino?'))return;try{const {error}=await onlineClient.from('records').delete().eq('id',id).eq('kind','pricelists');if(error)throw error;await menjaWriteAudit('eliminato','pricelists',id,db.priceLists.find(x=>String(x.id)===String(id)),null);await loadOnlineData();render()}catch(e){showError(e)}}
 async function saveCustomerPriceLists(event){event.preventDefault();if(activeProfile?.role!=='admin')return;const form=event.currentTarget,customer=db.customers.find(c=>c.id===form.dataset.customerId);if(!customer)return;const ids=[...form.querySelectorAll('input[name="price_list_ids"]:checked')].map(x=>x.value);try{const{error}=await onlineClient.from('profiles').update({price_list_ids:ids,price_list_id:ids[0]||null}).eq('id',customer.id);if(error)throw error;customer.price_list_ids=ids;customer.price_list_id=ids[0]||'';render()}catch(e){showError(e)}}
 async function saveAdminCustomerCode(event){
  event.preventDefault();
@@ -484,6 +487,7 @@ async function approveOrderWithLots(id){
   const updated={...order,lines:updatedLines,lot_ids:lotIds,items:itemText,status:'Confermato',confirmed_at:new Date().toISOString(),updated_at:new Date().toISOString()};
   const {data,error}=await onlineClient.from('records').update({payload:updated}).eq('id',id).eq('kind','orders').select('id').maybeSingle();
   if(error)throw error;if(!data)throw new Error('Approvazione non salvata dal database. Nessun lotto è stato assegnato.');
+  await menjaWriteAudit('approvato','orders',id,order,updated);
   const local=db.orders.find(o=>String(o.id)===String(id));if(local)Object.assign(local,updated);
   let customerId=order.customer_id||null;
   if(!customerId&&order.customer_code){const{data:profile}=await onlineClient.from('profiles').select('id').eq('customer_code',order.customer_code).maybeSingle();customerId=profile?.id||null}
@@ -878,7 +882,7 @@ async function deleteProduct(id){
  if(!confirm(message))return;
  try{
   if(history){await persistRecord('products',{...product,active:false,archived_at:new Date().toISOString()})}
-  else{const {data,error}=await onlineClient.from('records').delete().eq('id',id).eq('kind','products').eq('owner_id',activeUser.id).select('id').maybeSingle();if(error)throw error;if(!data)throw new Error('Il prodotto non è stato eliminato. Verifica i permessi.')}
+  else{const {data,error}=await onlineClient.from('records').delete().eq('id',id).eq('kind','products').eq('owner_id',activeUser.id).select('id').maybeSingle();if(error)throw error;if(!data)throw new Error('Il prodotto non è stato eliminato. Verifica i permessi.');await menjaWriteAudit('eliminato','products',id,product,null)}
   await loadOnlineData();render();
  }catch(error){showError(error)}
 }
@@ -1017,6 +1021,7 @@ async function setOrderStatus(id,status){
   const {data,error}=await onlineClient.from('records').update({payload:updatedPayload}).eq('id',id).eq('kind','orders').select('id').maybeSingle();
   if(error)throw error;
   if(!data)throw new Error('Ordine non aggiornato: il database non ha confermato la modifica. Verifica i permessi e riprova.');
+  await menjaWriteAudit('stato modificato','orders',id,item,updatedPayload);
   if(['Confermato','Rifiutato'].includes(status)&&item.status!==status){
    let customerId=item.customer_id||null;
    if(!customerId&&item.customer_code){const{data:profile}=await onlineClient.from('profiles').select('id').eq('customer_code',item.customer_code).maybeSingle();customerId=profile?.id||null}
