@@ -344,7 +344,7 @@ function orderPickupAlertClass(order){
  const status=String(order?.status||'').toLocaleLowerCase('it-IT');
  if(['consegnato','ritirato','annullato','rifiutato','pagato'].includes(status))return '';
  const pickup=String(order?.pickup||'').split('T')[0];
- if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(pickup))return '';
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(pickup))return '';
  const today=lotDateToday();
  const day=Date.parse(pickup+'T00:00:00Z'),now=Date.parse(today+'T00:00:00Z');
  if(day===now)return 'today';
