@@ -1017,14 +1017,20 @@ async function menjaAwardFidelityForPaidOrder(order){
  if(activeProfile?.role!=='admin'||!onlineClient)throw new Error('Accredito fidelity non autorizzato.');
  if(String(order.status)!=='Pagato'||!order.paid_at)throw new Error('La fidelity viene accreditata solo dopo la conferma del pagamento. La consegna viene verificata prima di registrare il pagamento.');
  const lines=Array.isArray(order.lines)?order.lines:[];
- const quantity=lines.reduce((sum,line)=>sum+Math.max(0,Number(line.quantity??line.qty)||0),0);
- if(!Number.isFinite(quantity)||quantity<=0)return;
+ let quantity=lines.reduce((sum,line)=>sum+Math.max(0,Number(line.quantity??line.qty)||0),0);
+ // Gli ordini inseriti/modificati manualmente possono avere solo il campo testuale "items".
+ if(!Number.isFinite(quantity)||quantity<=0){
+  const raw=String(order.items||'');const re=/(?:^|[,;\\n])\\s*([0-9]+(?:[.,][0-9]+)?)\\s*[×x*]\\s*([^,;\\n]+)/gi;let match;quantity=0;
+  while((match=re.exec(raw))!==null){const product=String(match[2]||'').replace(/\\s*\\[[^\\]]*\\]\\s*$/,'').trim();if(product)quantity+=Math.max(0,Number(String(match[1]).replace(',','.'))||0)}
+ }
+ if(!Number.isFinite(quantity)||quantity<=0)throw new Error('Non riesco a leggere la quantità delle basi in questo ordine. Controlla i prodotti e le quantità prima di registrare i punti.');
  let customerId=order.customer_id||null;
  let profile=null;
  if(customerId){const result=await onlineClient.from('profiles').select('id,customer_type,fidelity_points').eq('id',customerId).maybeSingle();if(result.error)throw result.error;profile=result.data}
  if(!profile&&order.customer_code){const result=await onlineClient.from('profiles').select('id,customer_type,fidelity_points').eq('customer_code',order.customer_code).maybeSingle();if(result.error)throw result.error;profile=result.data;customerId=profile?.id||null}
  if(!profile&&order.customer_email){const result=await onlineClient.from('profiles').select('id,customer_type,fidelity_points').eq('email',order.customer_email).maybeSingle();if(result.error)throw result.error;profile=result.data;customerId=profile?.id||null}
- if(!profile||profile.customer_type==='azienda')return;
+ if(!profile)throw new Error('Cliente non trovato: impossibile associare i punti alla tessera fidelity. Verifica codice cliente ed email dell’ordine.');
+ if(String(profile.customer_type||'privato').trim().toLowerCase()==='azienda')return;
  const movementId='fidelity-order-'+String(order.id);
  const existing=db.fidelity.find(m=>String(m.order_id||'')===String(order.id)||String(m.id||'')===movementId);
  if(existing)return;
