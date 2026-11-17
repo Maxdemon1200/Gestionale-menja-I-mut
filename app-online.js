@@ -1182,3 +1182,183 @@ async function saveCompanyProfile(event){
  }catch(error){showError(error);button.disabled=false;button.textContent=companyProfileEditing?'Conferma modifiche':'Salva anagrafica'}
 }
 
+
+
+/* SICUREZZA GESTIONALE: backup locali, registro modifiche e controlli di integrita */
+onlineKinds.auditLogs='audit_log';
+if(!Array.isArray(db.auditLogs))db.auditLogs=[];
+const menjaAuditFields=['code','status','customer','customer_id','customer_code','pickup','items','lines','total','lot_ids','lot_id','lot_code','lot_allocations','qty','product','production_date','date','expiry','ingredient_lots','ingredients','operator','notes'];
+function menjaAuditSnapshot(value){
+ const out={};if(!value||typeof value!=='object')return out;
+ for(const key of menjaAuditFields){if(Object.prototype.hasOwnProperty.call(value,key))out[key]=value[key]}
+ return out;
+}
+async function menjaWriteAudit(action,kind,id,before,after){
+ if(!onlineClient||!activeUser||kind==='audit_log')return;
+ const oldValue=menjaAuditSnapshot(before),newValue=menjaAuditSnapshot(after),changes={};
+ const keys=new Set([...Object.keys(oldValue),...Object.keys(newValue)]);
+ for(const key of keys){const oldText=JSON.stringify(oldValue[key]),newText=JSON.stringify(newValue[key]);if(oldText!==newText)changes[key]={prima:oldValue[key]??null,dopo:newValue[key]??null}}
+ const entry={id:crypto.randomUUID(),action,record_type:kind,record_id:String(id||''),record_label:String(after?.code||before?.code||after?.name||before?.name||after?.product||before?.product||id||kind),actor_id:activeUser.id,actor_name:activeProfile?.full_name||activeProfile?.email||'Amministratore',occurred_at:new Date().toISOString(),changes};
+ const {error}=await onlineClient.from('records').upsert({id:entry.id,kind:'audit_log',owner_id:activeUser.id,payload:entry});
+ if(error)console.error('Registro modifiche non aggiornato:',error);
+}
+const menjaPersistRecordOriginal=persistRecord;
+persistRecord=async function(kind,obj){
+ const id=String(obj?.id||crypto.randomUUID());obj.id=id;
+ let before=null;
+ if(onlineClient&&activeUser&&kind!=='audit_log'){
+  try{const result=await onlineClient.from('records').select('payload').eq('id',id).eq('kind',kind).maybeSingle();if(!result.error&&result.data)before=result.data.payload||null}catch(e){console.warn('Lettura precedente per registro modifiche:',e)}
+ }
+ await menjaPersistRecordOriginal(kind,obj);
+ if(kind!=='audit_log')await menjaWriteAudit(before?'modificato':'creato',kind,id,before,obj);
+};
+function menjaBackupOpenDb(){
+ return new Promise((resolve,reject)=>{
+  const request=indexedDB.open('menjaimut-secure-backups-v1',1);
+  request.onupgradeneeded=()=>{const dbx=request.result;if(!dbx.objectStoreNames.contains('snapshots'))dbx.createObjectStore('snapshots',{keyPath:'id'})};
+  request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error||new Error('Archivio backup non disponibile'));
+ });
+}
+async function menjaBackupPut(snapshot){
+ const dbx=await menjaBackupOpenDb();
+ await new Promise((resolve,reject)=>{const tx=dbx.transaction('snapshots','readwrite');tx.objectStore('snapshots').put(snapshot);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Salvataggio backup interrotto'))});
+ dbx.close();
+}
+async function menjaBackupGetAll(){
+ const dbx=await menjaBackupOpenDb();
+ const rows=await new Promise((resolve,reject)=>{const tx=dbx.transaction('snapshots','readonly'),request=tx.objectStore('snapshots').getAll();request.onsuccess=()=>resolve(request.result||[]);request.onerror=()=>reject(request.error)});
+ dbx.close();return rows.sort((x,y)=>String(y.created_at).localeCompare(String(x.created_at)));
+}
+async function menjaBackupDelete(id){
+ const dbx=await menjaBackupOpenDb();
+ await new Promise((resolve,reject)=>{const tx=dbx.transaction('snapshots','readwrite');tx.objectStore('snapshots').delete(id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});
+ dbx.close();
+}
+async function menjaCaptureBackup(){
+ if(activeProfile?.role!=='admin'||!onlineClient)throw new Error('Backup disponibile solo per l’amministratore connesso.');
+ const {data:records,error}=await onlineClient.from('records').select('id,kind,owner_id,payload,created_at');
+ if(error)throw error;
+ const {data:profiles,error:profileError}=await onlineClient.from('profiles').select('*');
+ if(profileError)throw profileError;
+ let chatMessages=[],warnings=[];
+ const chatResult=await onlineClient.from('chat_messages').select('*');
+ if(chatResult.error)warnings.push('Messaggi chat non inclusi: permessi o tabella non disponibili.');
+ else chatMessages=chatResult.data||[];
+ return {format:'menja-i-mut-full-backup-v2',app:'Menja i Mut Gestionale',created_at:new Date().toISOString(),created_by:activeUser.id,records:records||[],profiles:profiles||[],chat_messages:chatMessages,warnings};
+}
+function menjaDownloadBackup(snapshot){
+ const blob=new Blob([JSON.stringify(snapshot,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');
+ link.href=url;link.download='menja-i-mut-backup-'+new Date(snapshot.created_at||Date.now()).toISOString().slice(0,10)+'.json';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+async function menjaManualBackup(){
+ try{
+  const snapshot=await menjaCaptureBackup();snapshot.id='manual-'+Date.now();snapshot.backup_type='manual';
+  await menjaBackupPut(snapshot);menjaDownloadBackup(snapshot);await menjaRefreshBackupList();
+  alert('Backup creato e scaricato. Copia il file anche su un dispositivo o cloud esterno: la copia automatica del browser resta su questo dispositivo.');
+ }catch(error){showError(error)}
+}
+async function menjaRunDailyBackup(){
+ if(activeProfile?.role!=='admin'||!onlineClient||window.__menjaDailyBackupDone)return;
+ window.__menjaDailyBackupDone=true;
+ try{
+  const day=new Date().toISOString().slice(0,10),id='auto-'+day,existing=(await menjaBackupGetAll()).some(x=>x.id===id);
+  if(existing)return;
+  const snapshot=await menjaCaptureBackup();snapshot.id=id;snapshot.backup_type='automatico';
+  await menjaBackupPut(snapshot);
+  const all=await menjaBackupGetAll(),automatic=all.filter(x=>x.backup_type==='automatico');
+  for(const old of automatic.slice(7))await menjaBackupDelete(old.id);
+  console.info('Backup automatico locale completato:',day);
+ }catch(error){window.__menjaDailyBackupDone=false;console.warn('Backup automatico locale non riuscito:',error)}
+}
+async function menjaRefreshBackupList(){
+ const host=document.getElementById('menjaBackupList');if(!host)return;
+ try{
+  const rows=await menjaBackupGetAll();
+  host.innerHTML=rows.length?rows.map(item=>'<div class="row" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)"><span><strong>'+esc(item.backup_type==='automatico'?'Automatico':'Manuale')+'</strong><small class="muted" style="display:block">'+esc(new Date(item.created_at).toLocaleString('it-IT'))+' · '+(item.records?.length||0)+' registrazioni</small></span><button class="smallbtn" onclick="menjaRestoreLocalBackup(\''+esc(item.id)+'\')">Ripristina</button></div>').join(''):'<div class="empty">Nessun backup locale ancora disponibile.</div>';
+ }catch(error){host.textContent='Archivio locale non disponibile in questo browser.';console.warn(error)}
+}
+async function menjaRestoreBackupObject(snapshot){
+ if(activeProfile?.role!=='admin')throw new Error('Ripristino consentito solo al titolare.');
+ if(snapshot?.format!=='menja-i-mut-full-backup-v2'||!Array.isArray(snapshot.records))throw new Error('File non riconosciuto: serve un backup completo Menja i Mut.');
+ const records=snapshot.records,profiles=Array.isArray(snapshot.profiles)?snapshot.profiles:[],chats=Array.isArray(snapshot.chat_messages)?snapshot.chat_messages:[];
+ if(!confirm('Ripristinare il backup del '+new Date(snapshot.created_at||Date.now()).toLocaleString('it-IT')+'?\n\nI dati saranno uniti a quelli attuali: non verranno cancellati record più recenti o non presenti nel backup.'))return;
+ for(let start=0;start<records.length;start+=100){
+  const {error}=await onlineClient.from('records').upsert(records.slice(start,start+100),{onConflict:'id'});
+  if(error)throw error;
+ }
+ const allowed=['full_name','category','customer_type','vat_number','street_address','recipient_code_or_pec','phone','deleted_at','customer_code','fidelity_points','price_list_id','price_list_ids'];
+ let profileRestored=0;
+ for(const profile of profiles){
+  if(!profile?.id)continue;
+  const patch={};for(const key of allowed)if(Object.prototype.hasOwnProperty.call(profile,key))patch[key]=profile[key];
+  if(Object.keys(patch).length){const {error}=await onlineClient.from('profiles').update(patch).eq('id',profile.id);if(error)console.warn('Profilo non ripristinato:',profile.id,error);else profileRestored++}
+ }
+ let chatsRestored=0;
+ if(chats.length){
+  for(let start=0;start<chats.length;start+=100){
+   const {error}=await onlineClient.from('chat_messages').upsert(chats.slice(start,start+100),{onConflict:'id'});
+   if(error){console.warn('Ripristino chat non completato:',error);break}
+   chatsRestored+=Math.min(100,chats.length-start);
+  }
+ }
+ await menjaWriteAudit('ripristino_backup','backup',snapshot.id||snapshot.created_at,null,{code:'Ripristino backup',notes:records.length+' record'});
+ await loadOnlineData();render();
+ alert('Ripristino completato in modalità unione. Record ripristinati: '+records.length+'. Profili aggiornati: '+profileRestored+'. Messaggi chat ripristinati: '+chatsRestored+'. Nessun dato attuale è stato cancellato.');
+}
+async function menjaRestoreLocalBackup(id){
+ try{const snapshot=(await menjaBackupGetAll()).find(x=>x.id===id);if(!snapshot)throw new Error('Backup locale non trovato.');await menjaRestoreBackupObject(snapshot)}catch(error){showError(error)}
+}
+function exportData(){
+ menjaCaptureBackup().then(snapshot=>{menjaDownloadBackup(snapshot);alert('Backup completo scaricato. Conserva una copia esterna al dispositivo.')}).catch(showError);
+}
+function importBackup(){
+ if(activeProfile?.role!=='admin'){alert('Importazione consentita solo all’amministratore.');return}
+ const input=document.createElement('input');input.type='file';input.accept='application/json,.json';
+ input.onchange=async()=>{try{const file=input.files?.[0];if(!file)return;const snapshot=JSON.parse(await file.text());await menjaRestoreBackupObject(snapshot)}catch(error){showError(error)}};
+ input.click();
+}
+function menjaIntegrityReport(){
+ const issues=[],lotsById=new Map((db.lots||[]).map(l=>[String(l.id),l])),orders=db.orders||[],active=['Confermato','In produzione','Pronto per il ritiro','Ritirato','Consegnato','Completato','Pagato'];
+ const seenCodes=new Map(),seenLotCodes=new Map();
+ for(const order of orders){
+  const code=String(order.code||'').trim();if(code){if(seenCodes.has(code))issues.push({level:'warning',where:'Ordine '+code,detail:'Codice ordine duplicato.'});else seenCodes.set(code,order.id)}
+  if(!active.includes(String(order.status||'')))continue;
+  const lines=Array.isArray(order.lines)?order.lines:[];
+  if(!lines.length){if(String(order.items||'').trim())issues.push({level:'warning',where:'Ordine '+(code||order.id),detail:'Prodotti salvati come testo: controllo quantità e lotti incompleto.'});continue}
+  for(const line of lines){
+   const qty=Number(line.quantity??line.qty);
+   if(!Number.isFinite(qty)||qty<=0){issues.push({level:'error',where:'Ordine '+(code||order.id),detail:'Riga prodotto con quantità nulla, negativa o non numerica.'});continue}
+   const parts=Array.isArray(line.lot_allocations)?line.lot_allocations:[];
+   if(parts.length){
+    const allocated=parts.reduce((sum,p)=>sum+Math.max(0,Number(p.quantity)||0),0);
+    if(Math.abs(allocated-qty)>0.001)issues.push({level:'error',where:'Ordine '+(code||order.id),detail:'Quantità assegnata ai lotti ('+allocated+') diversa dalla quantità ordinata ('+qty+').'});
+    for(const part of parts){const lot=lotsById.get(String(part.lot_id||''));if(!lot)issues.push({level:'error',where:'Ordine '+(code||order.id),detail:'Riferimento a lotto inesistente ('+(part.lot_code||part.lot_id||'senza codice')+').'});else if(String(lot.product||'').trim().toLocaleLowerCase('it-IT')!==String(line.product||line.name||'').trim().toLocaleLowerCase('it-IT'))issues.push({level:'warning',where:'Ordine '+(code||order.id),detail:'Il prodotto della riga non corrisponde al prodotto del lotto '+(lot.code||lot.id)+'.'})}
+   }else if(line.lot_id&&!lotsById.has(String(line.lot_id)))issues.push({level:'error',where:'Ordine '+(code||order.id),detail:'Lotto assegnato non trovato ('+line.lot_id+').'});
+  }
+ }
+ for(const lot of db.lots||[]){
+  const qty=Number(lot.qty);if(!Number.isFinite(qty)||qty<0)issues.push({level:'error',where:'Lotto '+(lot.code||lot.id),detail:'Quantità prodotta non valida.'});
+  const code=String(lot.code||'').trim();if(code){if(seenLotCodes.has(code))issues.push({level:'warning',where:'Lotto '+code,detail:'Codice lotto duplicato.'});else seenLotCodes.set(code,lot.id)}
+ }
+ if(typeof menjaLotSoldAllocations==='function'){
+  const allocations=menjaLotSoldAllocations();
+  for(const lot of db.lots||[]){const used=allocations.get(String(lot.id))||0,qty=Math.max(0,Number(lot.qty)||0);if(used>qty+0.001)issues.push({level:'warning',where:'Lotto '+(lot.code||lot.id),detail:'Scarichi calcolati '+used+' superiori alla produzione '+qty+'. Giacenza negativa: verifica se è una vendita senza lotto disponibile o un doppio scarico.'})}
+ }
+ return {issues,errors:issues.filter(x=>x.level==='error').length,warnings:issues.filter(x=>x.level==='warning').length,checkedOrders:orders.filter(o=>active.includes(String(o.status||''))).length,checkedLots:(db.lots||[]).length};
+}
+function menjaSafetyPage(){
+ if(activeProfile?.role!=='admin')return '<div class="box">Accesso non consentito.</div>';
+ const report=menjaIntegrityReport(),audit=(db.auditLogs||[]).slice().sort((x,y)=>String(y.occurred_at||'').localeCompare(String(x.occurred_at||''))).slice(0,60);
+ const issueRows=report.issues.map(x=>'<tr><td><span class="badge">'+(x.level==='error'?'ERRORE':'ATTENZIONE')+'</span></td><td>'+esc(x.where)+'</td><td>'+esc(x.detail)+'</td></tr>');
+ const auditRows=audit.map(x=>[esc(new Date(x.occurred_at||Date.now()).toLocaleString('it-IT'))+'<br>'+esc(x.actor_name||'Utente'),esc(x.action||''),esc(x.record_type||'')+' · '+esc(x.record_label||x.record_id||''),esc(Object.keys(x.changes||{}).join(', ')||x.notes||'—')]);
+ setTimeout(menjaRefreshBackupList,0);
+ return head('Sicurezza e controlli','Backup, storico modifiche e verifica coerenza dei dati')+
+ '<section class="box"><h2>Backup e ripristino</h2><p class="muted">Viene conservata automaticamente una copia giornaliera in questo browser (ultimi 7 backup automatici). Per proteggerti da guasti o perdita del dispositivo, scarica il backup e conservalo anche altrove.</p><div class="actions" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn gold" onclick="menjaManualBackup()">Crea backup e scarica</button><button class="btn" onclick="importBackup()">Ripristina da file</button><button class="btn" onclick="menjaRefreshBackupList()">Aggiorna elenco</button></div><div id="menjaBackupList" style="margin-top:12px"><div class="muted">Caricamento backup locali…</div></div><div class="notice" style="margin-top:12px">Il backup automatico è locale al browser e non sostituisce una copia esterna. Il ripristino unisce i dati e non cancella quelli già presenti.</div></section>'+
+ '<section class="box"><div class="head"><div><h2>Controllo integrità</h2><div class="muted">Verifica ordini, quantità, codici lotto e assegnazioni</div></div><button class="btn" onclick="render()">Ricontrolla</button></div><div class="grid cards"><div class="card"><small>Ordini controllati</small><div class="metric">'+report.checkedOrders+'</div></div><div class="card"><small>Lotti controllati</small><div class="metric">'+report.checkedLots+'</div></div><div class="card"><small>Errori</small><div class="metric">'+report.errors+'</div></div><div class="card"><small>Avvisi</small><div class="metric">'+report.warnings+'</div></div></div>'+(issueRows.length?'<div class="tablewrap"><table class="table"><thead><tr><th>Livello</th><th>Elemento</th><th>Controllo</th></tr></thead><tbody>'+issueRows.join('')+'</tbody></table></div>':'<div class="notice">Nessuna anomalia rilevata nei dati attualmente verificabili.</div>')+'<p class="muted">Le giacenze negative sono segnalate, non bloccate. I vecchi ordini salvati solo come testo non permettono una verifica completa delle quantità. I controlli non possono ricostruire movimenti storici non registrati.</p></section>'+
+ '<section class="box"><h2>Registro cronologico modifiche</h2><p class="muted">Nuove creazioni e modifiche ai record gestionali vengono annotate da ora in avanti. Non è possibile ricostruire retroattivamente modifiche precedenti all’attivazione del registro.</p>'+(auditRows.length?table(['Data e operatore','Operazione','Elemento','Campi modificati'],auditRows):'<div class="empty">Nessuna modifica registrata ancora.</div>')+'</section>';
+}
+const menjaModulePageBeforeSecurity=modulePage;
+modulePage=function(){if(page==='Sicurezza')return menjaSafetyPage();return menjaModulePageBeforeSecurity()};
+const menjaExportDataBeforeSecurity=exportData;
+const menjaImportBackupBeforeSecurity=importBackup;
+window.setInterval(()=>{if(activeProfile?.role==='admin'&&onlineClient&&!window.__menjaDailyBackupDone&&Array.isArray(db.orders))menjaRunDailyBackup()},2000);
