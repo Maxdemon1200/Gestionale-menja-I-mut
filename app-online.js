@@ -259,7 +259,7 @@ async function deleteAdminOrder(id){
  if(!confirm('ATTENZIONE: stai per eliminare definitivamente l’ordine '+(order.code||'')+' di '+customer+'.\n\nL’ordine verrà cancellato dallo storico e le quantità dei lotti torneranno disponibili.\n\nConfermi l’eliminazione?'))return;
  try{
   window.__menjaStage='eliminazione ordine';
-  const {data,error}=await onlineClient.from('records').delete().eq('id',id).eq('kind','orders').eq('owner_id',activeUser.id).select('id').single();
+  const {data,error}=await onlineClient.from('records').delete().eq('id',id).eq('kind','orders').select('id').maybeSingle();
   if(error)throw error;if(!data)throw new Error('Ordine non eliminato: verifica i permessi.');
   db.orders=db.orders.filter(o=>String(o.id)!==String(id));
   await loadOnlineData();render();
