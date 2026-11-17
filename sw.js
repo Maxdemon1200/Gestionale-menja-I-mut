@@ -17,7 +17,7 @@ self.addEventListener("notificationclick", event => {
   }));
 });
 
-const CACHE_NAME = "menjaimut-pwa-v165";
+const CACHE_NAME = "menjaimut-pwa-v166";
 const APP_SHELL = [
   "./",
   "./index.html",
