@@ -524,9 +524,9 @@ function menjaLotSoldAllocations(){
   lots.sort((a,b)=>String(a.production_date||a.date||a.created_at||'').localeCompare(String(b.production_date||b.date||b.created_at||'')));
   lots.forEach(l=>remainingById.set(String(l.id),Math.max(0,Number(l.qty)||0)));
  }
- const allocate=(lot,quantity)=>{
-  if(!lot||quantity<=0)return;
-  const id=String(lot.id),remaining=remainingById.get(id)||0,used=Math.min(remaining,quantity);
+ const allocate=(lot,quantity,allowNegative=false)=>{
+  if(!lot||quantity<=0)return quantity;
+  const id=String(lot.id),remaining=remainingById.get(id)||0,used=allowNegative?quantity:Math.min(remaining,quantity);
   if(used>0){allocations.set(id,(allocations.get(id)||0)+used);remainingById.set(id,remaining-used)}
   return quantity-used;
  };
@@ -538,12 +538,15 @@ function menjaLotSoldAllocations(){
     const explicitId=line.lot_id?String(line.lot_id):'';
     if(explicitId){allocate(lotById.get(explicitId),quantity);continue}
     let pending=quantity;
-    for(const lot of lotsByProduct.get(key)||[]){if(pending<=0)break;pending=allocate(lot,pending)}
+    const productLots=lotsByProduct.get(key)||[];
+    for(const lot of productLots){if(pending<=0)break;pending=allocate(lot,pending)}
+    if(pending>0&&productLots.length)allocate(productLots[productLots.length-1],pending,true);
    }
   }else{
    for(const [key,lots] of lotsByProduct){
     let pending=menjaOrderLineQuantities(order,key);
     for(const lot of lots){if(pending<=0)break;pending=allocate(lot,pending)}
+    if(pending>0&&lots.length)allocate(lots[lots.length-1],pending,true);
    }
   }
  }
@@ -557,13 +560,13 @@ function menjaWarehousePage(){
  const lots=db.lots.slice().sort((a,b)=>String(b.production_date||b.date||b.created_at||'').localeCompare(String(a.production_date||a.date||a.created_at||'')));
  const soldAllocations=menjaLotSoldAllocations();
  const rows=lots.map(lot=>{
-  const produced=Math.max(0,Number(lot.qty)||0),sold=Math.min(produced,menjaLotSoldQuantity(lot,soldAllocations)),stock=Math.max(0,produced-sold);
+  const produced=Math.max(0,Number(lot.qty)||0),sold=menjaLotSoldQuantity(lot,soldAllocations),stock=produced-sold;
   const search=[lot.code,lot.product,lot.production_date,lot.date,lot.status,lot.operator].join(' ').toLocaleLowerCase('it-IT');
   return '<tr class="warehouse-row" data-search="'+esc(search)+'"><td>'+esc(lot.code||'—')+'</td><td>'+esc(lot.product||'—')+'</td><td>'+esc(lot.production_date||lot.date||'—')+'</td><td>'+produced.toLocaleString('it-IT')+' '+esc(lot.unit||'pezzi')+'</td><td>'+sold.toLocaleString('it-IT')+' '+esc(lot.unit||'pezzi')+'</td><td><strong>'+stock.toLocaleString('it-IT')+' '+esc(lot.unit||'pezzi')+'</strong></td><td><span class="badge">'+esc(lot.status||'Prodotto')+'</span></td></tr>';
  }).join('');
- const totals=lots.reduce((acc,lot)=>{const p=Math.max(0,Number(lot.qty)||0),s=Math.min(p,menjaLotSoldQuantity(lot,soldAllocations));acc.produced+=p;acc.sold+=s;acc.stock+=Math.max(0,p-s);return acc},{produced:0,sold:0,stock:0});
+ const totals=lots.reduce((acc,lot)=>{const p=Math.max(0,Number(lot.qty)||0),s=menjaLotSoldQuantity(lot,soldAllocations);acc.produced+=p;acc.sold+=s;acc.stock+=p-s;return acc},{produced:0,sold:0,stock:0});
  const summary=(label,value)=>'<div class="box"><small class="muted">'+label+'</small><h2 style="margin:6px 0 0">'+value.toLocaleString('it-IT')+'</h2><small class="muted">pezzi</small></div>';
- return head('Magazzino','Giacenza delle basi per lotto: produzione meno ordini approvati')+'<div class="grid three" style="margin-bottom:16px">'+summary('BASI PRODOTTE',totals.produced)+summary('BASI IMPEGNATE',totals.sold)+summary('BASI IN GIACENZA',totals.stock)+'</div><div class="box"><div class="toolbar"><input class="field" placeholder="Cerca per lotto, prodotto o data" oninput="filterWarehouseLots(this)"><span class="muted">'+lots.length+' lotti</span></div>'+(lots.length?'<div class="tablewrap"><table class="table" id="warehouseLotsTable"><thead><tr><th>Lotto</th><th>Prodotto</th><th>Data</th><th>Prodotte</th><th>Vendute</th><th>In giacenza</th><th>Stato lotto</th></tr></thead><tbody>'+rows+'</tbody></table></div><div class="empty" id="warehouseSearchEmpty" hidden>Nessun lotto trovato.</div>':'<div class="empty">Non ci sono ancora lotti di produzione. Registra un lotto nell’area Lotti produzione: le quantità compariranno qui.</div>')+'</div><p class="muted">Le basi vengono impegnate automaticamente quando l’ordine passa a “Confermato” (o a uno stato successivo). Se l’ordine viene rifiutato o torna “Da approvare”, le quantità rientrano nella giacenza.</p>';
+ return head('Magazzino','Giacenza delle basi per lotto: produzione meno ordini confermati; i valori negativi indicano vendite oltre la produzione')+'<div class="grid three" style="margin-bottom:16px">'+summary('BASI PRODOTTE',totals.produced)+summary('BASI IMPEGNATE',totals.sold)+summary('GIACENZA NETTA',totals.stock)+'</div><div class="box"><div class="toolbar"><input class="field" placeholder="Cerca per lotto, prodotto o data" oninput="filterWarehouseLots(this)"><span class="muted">'+lots.length+' lotti</span></div>'+(lots.length?'<div class="tablewrap"><table class="table" id="warehouseLotsTable"><thead><tr><th>Lotto</th><th>Prodotto</th><th>Data</th><th>Prodotte</th><th>Vendute</th><th>Giacenza (+ / −)</th><th>Stato lotto</th></tr></thead><tbody>'+rows+'</tbody></table></div><div class="empty" id="warehouseSearchEmpty" hidden>Nessun lotto trovato.</div>':'<div class="empty">Non ci sono ancora lotti di produzione. Registra un lotto nell’area Lotti produzione: le quantità compariranno qui.</div>')+'</div><p class="muted">Le basi vengono impegnate automaticamente quando l’ordine passa a “Confermato” (o a uno stato successivo). Se l’ordine viene rifiutato o torna “Da approvare”, le quantità rientrano nella giacenza.</p>';
 }
 function filterWarehouseLots(input){
  const query=String(input.value||'').trim().toLocaleLowerCase('it-IT');
