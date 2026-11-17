@@ -98,11 +98,14 @@ async function refreshOwnerOrders(){
   const {data,error}=await onlineClient.from('records').select('id,kind,owner_id,payload,created_at').eq('kind','orders');
   if(error)throw error;
   const fresh=(data||[]).map(r=>({...r.payload,id:r.id,owner_id:r.owner_id,created_at:r.created_at||r.payload?.created_at||null}));
+  const previousSnapshot=JSON.stringify(db.orders.map(o=>({id:o.id,status:o.status,lines:o.lines,items:o.items,updated_at:o.updated_at,created_at:o.created_at})));
   const ids=new Set(fresh.map(o=>String(o.id)));
   const newlyArrived=ownerKnownOrderIds===null?[]:fresh.filter(o=>o.status==='Da approvare'&&!ownerKnownOrderIds.has(String(o.id)));
   ownerKnownOrderIds=ids;
   db.orders=fresh;
   syncPendingOrderBadge();
+  const freshSnapshot=JSON.stringify(fresh.map(o=>({id:o.id,status:o.status,lines:o.lines,items:o.items,updated_at:o.updated_at,created_at:o.created_at})));
+  if(previousSnapshot!==freshSnapshot&&['Magazzino','Ordini','Lotti produzione'].includes(page))render();
   if(newlyArrived.length)showNewOrderNotice(newlyArrived);
  }catch(e){console.error('Controllo nuovi ordini non riuscito:',e)}
 }
