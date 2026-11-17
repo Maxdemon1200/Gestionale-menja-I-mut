@@ -1045,17 +1045,20 @@ onlineClient?.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT'){activeUs
 startOnline();
 
 
+function toggleCompanyIdentity(){const fields=document.getElementById('companyIdentityFields'),button=document.getElementById('companyIdentityToggle'),arrow=document.getElementById('companyIdentityArrow');if(!fields||!button)return;const opening=fields.hidden;fields.hidden=!opening;button.setAttribute('aria-expanded',String(opening));if(arrow)arrow.textContent=opening?'－':'＋'}
 function companyProfileSettingsPage(){
  if(activeProfile?.role!=='admin')return '<div class="box">Accesso non consentito.</div>';
  const d=db.companyProfile?.[0]||{};
  const field=(name,label,type='text',wide=false)=>'<label class="'+(wide?'wide':'')+'">'+label+'<input class="field" name="'+name+'" type="'+type+'" value="'+esc(d[name]||'')+'"></label>';
  return head('Anagrafica aziendale','Dati essenziali della tua azienda')+
  '<form class="box formgrid" id="companyProfileForm" onsubmit="saveCompanyProfile(event)">'+
- '<div class="wide"><h2>Dati identificativi</h2></div>'+
+ '<div class="wide"><button class="btn" type="button" id="companyIdentityToggle" aria-expanded="false" onclick="toggleCompanyIdentity()">Dati identificativi <span id="companyIdentityArrow">＋</span></button></div>'+
+ '<div class="wide formgrid" id="companyIdentityFields" hidden>'+
  field('business_name','Ragione sociale','text',true)+
  field('vat_number','Partita IVA')+field('tax_code','Codice fiscale')+
  field('recipient_code','Codice destinatario SDI/UNIVOCO')+
  field('legal_representative','Titolare / Legale rappresentante')+
+ '</div>'+
  '<div class="wide"><h2>Sede legale</h2></div>'+
  field('registered_address','Via e numero civico','text',true)+
  field('registered_postcode','CAP')+field('registered_city','Comune')+field('registered_province','Provincia')+
