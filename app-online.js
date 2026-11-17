@@ -1296,7 +1296,7 @@ async function menjaRefreshBackupList(){
  const host=document.getElementById('menjaBackupList');if(!host)return;
  try{
   const rows=await menjaBackupGetAll();
-  host.innerHTML=rows.length?rows.map(item=>'<div class="row" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)"><span><strong>'+esc(item.backup_type==='automatico'?'Automatico':'Manuale')+'</strong><small class="muted" style="display:block">'+esc(new Date(item.created_at).toLocaleString('it-IT'))+' · '+(item.records?.length||0)+' registrazioni</small></span><button class="smallbtn" onclick="menjaRestoreLocalBackup(\''+esc(item.id)+'\')">Ripristina</button></div>').join(''):'<div class="empty">Nessun backup locale ancora disponibile.</div>';
+  host.innerHTML=rows.length?rows.map(item=>'<div class="row" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)"><span><strong>'+esc(item.backup_type==='automatico'?'Automatico':'Manuale')+'</strong><small class="muted" style="display:block">'+esc(new Date(item.created_at).toLocaleString('it-IT'))+' · '+(item.counts?.records||item.records?.length||0)+' registrazioni</small></span><button class="smallbtn" onclick="menjaRestoreLocalBackup(\''+esc(item.id)+'\')">Ripristina</button></div>').join(''):'<div class="empty">Nessun backup locale ancora disponibile.</div>';
  }catch(error){host.textContent='Archivio locale non disponibile in questo browser.';console.warn(error)}
 }
 async function menjaRestoreBackupObject(snapshot){
