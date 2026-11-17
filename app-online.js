@@ -1045,44 +1045,58 @@ onlineClient?.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT'){activeUs
 startOnline();
 
 
-function toggleCompanyIdentity(){const fields=document.getElementById('companyIdentityFields'),button=document.getElementById('companyIdentityToggle'),arrow=document.getElementById('companyIdentityArrow');if(!fields||!button)return;const opening=fields.hidden;fields.hidden=!opening;button.setAttribute('aria-expanded',String(opening));if(arrow)arrow.textContent=opening?'－':'＋'}
+let companyProfileEditing=false;
+function toggleCompanyIdentity(){
+ const fields=document.getElementById('companyIdentityFields'),button=document.getElementById('companyIdentityToggle'),arrow=document.getElementById('companyIdentityArrow');
+ if(!fields||!button)return;
+ const opening=fields.hidden;fields.hidden=!opening;
+ button.setAttribute('aria-expanded',String(opening));
+ if(arrow)arrow.textContent=opening?'－':'＋';
+}
+function editCompanyProfile(){
+ companyProfileEditing=true;
+ const form=document.getElementById('companyProfileForm');if(!form)return;
+ form.querySelectorAll('input').forEach(input=>input.disabled=false);
+ const actions=document.getElementById('companyProfileActions');
+ if(actions)actions.innerHTML='<span class="muted" style="margin-right:auto">Conferma solo quando hai verificato tutti i dati.</span><button class="btn" type="button" onclick="cancelCompanyProfileEdit()">Annulla</button><button class="btn gold" type="submit">Conferma modifiche</button>';
+}
+function cancelCompanyProfileEdit(){companyProfileEditing=false;render();}
 function companyProfileSettingsPage(){
  if(activeProfile?.role!=='admin')return '<div class="box">Accesso non consentito.</div>';
- const d=db.companyProfile?.[0]||{};
- const field=(name,label,type='text',wide=false)=>'<label class="'+(wide?'wide':'')+'">'+label+'<input class="field" name="'+name+'" type="'+type+'" value="'+esc(d[name]||'')+'"></label>';
+ const d=db.companyProfile?.[0]||{},saved=!!d.business_name;
+ companyProfileEditing=false;
+ const field=(name,label,type='text',wide=false)=>'<label class="'+(wide?'wide':'')+'">'+label+'<input class="field" name="'+name+'" type="'+type+'" value="'+esc(d[name]||'')+'" '+(saved?'disabled':'')+'></label>';
+ const hidden=saved?' hidden':'';
  return head('Anagrafica aziendale','Dati essenziali della tua azienda')+
  '<form class="box formgrid" id="companyProfileForm" onsubmit="saveCompanyProfile(event)">'+
- '<div class="wide"><button class="btn" type="button" id="companyIdentityToggle" aria-expanded="false" onclick="toggleCompanyIdentity()">Dati identificativi <span id="companyIdentityArrow">＋</span></button></div>'+
- '<div class="wide formgrid" id="companyIdentityFields" hidden>'+
+ (saved?'<div class="wide"><button class="btn" type="button" id="companyIdentityToggle" aria-expanded="false" onclick="toggleCompanyIdentity()">DATI IDENTIFICATIVI <span id="companyIdentityArrow">＋</span></button></div>':'')+
+ '<div class="wide formgrid" id="companyIdentityFields"'+hidden+'>'+
  field('business_name','Ragione sociale','text',true)+
  field('vat_number','Partita IVA')+field('tax_code','Codice fiscale')+
  field('recipient_code','Codice destinatario SDI/UNIVOCO')+
  field('legal_representative','Titolare / Legale rappresentante')+
- '</div>'+
  '<div class="wide"><h2>Sede legale</h2></div>'+
  field('registered_address','Via e numero civico','text',true)+
  field('registered_postcode','CAP')+field('registered_city','Comune')+field('registered_province','Provincia')+
  '<div class="wide"><h2>Contatti e fatturazione</h2></div>'+
  field('phone','Telefono','tel')+field('email','Email','email')+field('pec','PEC','email')+
- 
- '<div class="wide actions" style="justify-content:flex-end"><span class="muted" style="margin-right:auto">Ultimo aggiornamento: '+esc(d.updated_at?new Date(d.updated_at).toLocaleString('it-IT'):'non ancora salvata')+'</span><button class="btn gold" type="submit">Salva anagrafica</button></div></form>'+
- '<div class="notice">Compila i dati riportati nei documenti ufficiali dell’azienda. I dati sono modificabili in qualsiasi momento.</div>';
+ '</div>'+
+ (saved?'<div class="wide actions" id="companyProfileActions" style="justify-content:flex-end"><span class="muted" style="margin-right:auto">Ultimo aggiornamento: '+esc(d.updated_at?new Date(d.updated_at).toLocaleString('it-IT'):'—')+'</span><button class="btn gold" type="button" onclick="editCompanyProfile()">Modifica</button></div>':'<div class="wide actions" id="companyProfileActions" style="justify-content:flex-end"><button class="btn gold" type="submit">Salva anagrafica</button></div>')+
+ '</form>'+
+ '<div class="notice">'+(saved?'I dati sono protetti. Per modificarli apri DATI IDENTIFICATIVI e seleziona MODIFICA.':'Inserisci i dati riportati nei documenti ufficiali dell’azienda.')+'</div>';
 }
 async function saveCompanyProfile(event){
  event.preventDefault();
  if(activeProfile?.role!=='admin'||!activeUser)throw new Error('Solo il titolare può modificare l’anagrafica aziendale.');
  const form=event.currentTarget,button=form.querySelector('button[type="submit"]');
+ if(db.companyProfile?.[0]?.business_name&&!companyProfileEditing){alert('Seleziona MODIFICA prima di cambiare i dati.');return}
  const data={...(db.companyProfile?.[0]||{}),...Object.fromEntries(new FormData(form))};
- data.id=activeUser.id;
- data.updated_at=new Date().toISOString();
- data.updated_by=activeUser.id;
+ data.id=activeUser.id;data.updated_at=new Date().toISOString();data.updated_by=activeUser.id;
  if(!String(data.business_name||'').trim()){alert('Inserisci la ragione sociale o il nome dell’attività.');return}
  button.disabled=true;button.textContent='Salvataggio…';
  try{
-  await persistRecord('settings',data);
-  db.companyProfile=[data];
-  render();
-  alert('Anagrafica aziendale salvata.');
- }catch(error){showError(error);button.disabled=false;button.textContent='Salva anagrafica aziendale'}
+  await persistRecord('settings',data);db.companyProfile=[data];companyProfileEditing=false;render();
+  alert('Anagrafica aziendale salvata e confermata.');
+ }catch(error){showError(error);button.disabled=false;button.textContent=companyProfileEditing?'Conferma modifiche':'Salva anagrafica'}
 }
 
