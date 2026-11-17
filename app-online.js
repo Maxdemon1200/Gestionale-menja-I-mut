@@ -1251,13 +1251,20 @@ async function menjaSelectAllRows(table,columns='*'){
  }
  return rows;
 }
+async function menjaBlobToBase64(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]||'');reader.onerror=()=>reject(reader.error||new Error('Lettura allegato non riuscita'));reader.readAsDataURL(blob)})}
+async function menjaBase64ToBlob(value,type){const binary=atob(value),bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);return new Blob([bytes],{type:type||'application/octet-stream'})}
 async function menjaCaptureBackup(){
  if(activeProfile?.role!=='admin'||!onlineClient)throw new Error('Backup disponibile solo per l’amministratore connesso.');
- const records=await menjaSelectAllRows('records','id,kind,owner_id,payload,created_at');
- const profiles=await menjaSelectAllRows('profiles','*');
- let chatMessages=[],warnings=[];
- try{chatMessages=await menjaSelectAllRows('chat_messages','*')}catch(error){warnings.push('Messaggi chat non inclusi: '+(error?.message||'tabella o permessi non disponibili'))}
- return {format:'menja-i-mut-full-backup-v2',app:'Menja i Mut Gestionale',created_at:new Date().toISOString(),created_by:activeUser.id,records,profiles,chat_messages:chatMessages,warnings};
+ const warnings=[],tables={};
+ tables.records=await menjaSelectAllRows('records','id,kind,owner_id,payload,created_at,updated_at');
+ tables.profiles=await menjaSelectAllRows('profiles','*');
+ tables.chat_messages=await menjaSelectAllRows('chat_messages','*');
+ tables.notifications=await menjaSelectAllRows('notifications','*');
+ try{tables.fcm_tokens=await menjaSelectAllRows('fcm_tokens','*')}catch(error){tables.fcm_tokens=[];warnings.push('Token notifiche non esportati: '+(error?.message||'permessi non disponibili'))}
+ const attachments=[],seen=new Set();
+ for(const message of tables.chat_messages){const path=message.attachment_path;if(!path||seen.has(path))continue;seen.add(path);const {data,error}=await onlineClient.storage.from('chat-attachments').download(path);if(error){warnings.push('Allegato non esportato ('+path+'): '+error.message);continue}attachments.push({path,name:message.attachment_name||path.split('/').pop(),type:message.attachment_type||data.type||'application/octet-stream',size:message.attachment_size||data.size,base64:await menjaBlobToBase64(data)})}
+ const counts={};for(const [name,rows] of Object.entries(tables))counts[name]=rows.length;counts.storage_attachments=attachments.length;
+ return {format:'menja-i-mut-full-backup-v3',app:'Menja i Mut Gestionale',created_at:new Date().toISOString(),created_by:activeUser.id,tables,storage:{bucket:'chat-attachments',files:attachments},auth:{note:'Gli account Auth e le password non sono esportabili dal client. Gli ID/email dei profili sono inclusi nella tabella profiles; gli account esistenti restano in Supabase.'},counts,warnings};
 }
 function menjaDownloadBackup(snapshot){
  const blob=new Blob([JSON.stringify(snapshot,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');
@@ -1294,6 +1301,21 @@ async function menjaRefreshBackupList(){
 }
 async function menjaRestoreBackupObject(snapshot){
  if(activeProfile?.role!=='admin')throw new Error('Ripristino consentito solo al titolare.');
+ if(snapshot?.format==='menja-i-mut-full-backup-v3'){
+  const tables=snapshot.tables||{},required=['records','profiles','chat_messages','notifications'];
+  for(const key of required)if(!Array.isArray(tables[key]))throw new Error('Backup incompleto: manca la tabella '+key+'.');
+  if(!confirm('Ripristinare il backup del '+new Date(snapshot.created_at||Date.now()).toLocaleString('it-IT')+'?\\n\\nVerranno ripristinati anche messaggi, notifiche e allegati. I dati non presenti nel backup non saranno cancellati.'))return;
+  for(let start=0;start<tables.records.length;start+=100){const {error}=await onlineClient.from('records').upsert(tables.records.slice(start,start+100),{onConflict:'id'});if(error)throw error}
+  const profileFields=['full_name','category','role','approval_status','customer_code','fidelity_points','price_list_id','price_list_ids','customer_type','vat_number','street_address','recipient_code_or_pec','phone','deleted_at'];let profileRestored=0;
+  for(const profile of tables.profiles){if(!profile?.id)continue;const patch={};for(const key of profileFields)if(Object.prototype.hasOwnProperty.call(profile,key))patch[key]=profile[key];const {error}=await onlineClient.from('profiles').update(patch).eq('id',profile.id);if(error)throw new Error('Ripristino profilo '+profile.id+' non riuscito: '+error.message);profileRestored++}
+  const files=snapshot.storage?.files||[];let attachmentsRestored=0;
+  for(const file of files){if(!file.path||!file.base64)continue;const blob=await menjaBase64ToBlob(file.base64,file.type);const {error}=await onlineClient.storage.from(snapshot.storage?.bucket||'chat-attachments').upload(file.path,blob,{contentType:file.type||'application/octet-stream',upsert:true});if(error)throw new Error('Ripristino allegato '+file.name+' non riuscito: '+error.message);attachmentsRestored++}
+  for(const key of ['chat_messages','notifications','fcm_tokens']){const rows=tables[key]||[];for(let start=0;start<rows.length;start+=100){const {error}=await onlineClient.from(key).upsert(rows.slice(start,start+100),{onConflict:'id'});if(error)throw new Error('Ripristino '+key+' non riuscito: '+error.message)}}
+  await menjaWriteAudit('ripristino_backup','backup',snapshot.created_at,null,{code:'Ripristino backup v3',notes:(tables.records.length||0)+' record'});
+  await loadOnlineData();render();
+  alert('Ripristino v3 completato. Record: '+tables.records.length+'. Profili aggiornati: '+profileRestored+'. Messaggi: '+tables.chat_messages.length+'. Notifiche: '+tables.notifications.length+'. Allegati: '+attachmentsRestored+'. Gli account Auth e le password non vengono ricreati: i profili sono aggiornati solo per account già esistenti. Controlla gli eventuali avvisi del backup.');
+  return;
+ }
  if(snapshot?.format==='menja-i-mut-backup-v1'){
   const legacy=snapshot.data||{},records=[],profiles=[];
   for(const bucket of Object.keys(onlineKinds)){
