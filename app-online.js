@@ -601,6 +601,10 @@ function menjaMobileEnhanceV49(){
   wrap.replaceWith(list);
  });
  root.querySelectorAll('form.formgrid').forEach(form=>form.classList.add('mobile-form'));
+ /* Su smartphone, ogni nuovo ordine deve aprirsi con tutte le quantità azzerate. */
+ if(activeProfile?.role==='customer'&&page==='Nuovo ordine'){
+  root.querySelectorAll('input[name^="customer_quantity_"]').forEach(input=>{input.value='0';input.defaultValue='0';input.setAttribute('value','0');input.setAttribute('autocomplete','off')});
+ }
  root.dataset.mobilePage=String(page||'').toLowerCase().replace(/[^a-z0-9]+/g,'-');
 }
 const menjaOriginalRenderV49=render;
