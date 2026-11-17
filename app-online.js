@@ -1048,29 +1048,28 @@ startOnline();
 function companyProfileSettingsPage(){
  if(activeProfile?.role!=='admin')return '<div class="box">Accesso non consentito.</div>';
  const d=db.companyProfile?.[0]||{};
- const field=(name,label,type='text',wide=false,placeholder='')=>'<label class="'+(wide?'wide':'')+'">'+label+'<input class="field" name="'+name+'" type="'+type+'" value="'+esc(d[name]||'')+'" placeholder="'+placeholder+'"></label>';
- const area=(name,label,wide=true)=>'<label class="'+(wide?'wide':'')+'">'+label+'<textarea class="field" name="'+name+'" rows="2">'+esc(d[name]||'')+'</textarea></label>';
- return head('Anagrafica aziendale','Dati identificativi, fiscali, amministrativi e sanitari dell’attività')+
+ const field=(name,label,type='text',wide=false)=>'<label class="'+(wide?'wide':'')+'">'+label+'<input class="field" name="'+name+'" type="'+type+'" value="'+esc(d[name]||'')+'"></label>';
+ return head('Anagrafica aziendale','I principali dati della tua attività')+
  '<form class="box formgrid" id="companyProfileForm" onsubmit="saveCompanyProfile(event)">'+
- '<div class="wide"><h2>Identità aziendale</h2><p class="muted">Inserisci i dati ufficiali così come risultano da visura camerale, Agenzia delle Entrate e documenti autorizzativi.</p></div>'+
- field('business_name','Ragione sociale', 'text',true)+field('trade_name','Nome commerciale / insegna')+
- '<label>Forma giuridica<select class="field" name="legal_form"><option value="">Seleziona</option>'+['Ditta individuale','Società di persone','SNC','SAS','SRL','SRLS','SPA','Cooperativa','Altra forma'].map(x=>'<option '+(d.legal_form===x?'selected':'')+'>'+x+'</option>').join('')+'</select></label>'+
- field('vat_number','Partita IVA')+field('tax_code','Codice fiscale')+field('rea_number','Numero REA')+field('chamber_of_commerce','Camera di commercio')+field('ateco_code','Codice ATECO')+
- '<div class="wide"><h2>Sede e contatti</h2></div>'+field('registered_address','Sede legale · via e numero civico','text',true)+field('registered_postcode','CAP')+field('registered_city','Comune')+field('registered_province','Provincia')+field('registered_region','Regione')+
- field('operational_address','Sede operativa · via e numero civico','text',true)+field('operational_postcode','CAP operativo')+field('operational_city','Comune operativo')+field('operational_province','Provincia operativa')+
- field('phone','Telefono aziendale','tel')+field('mobile_phone','Cellulare','tel')+field('email','Email aziendale','email')+field('pec','PEC','email')+field('website','Sito web','url',true)+
- '<div class="wide"><h2>Fatturazione elettronica</h2></div>'+field('recipient_code','Codice destinatario SDI')+field('billing_pec','PEC per fatturazione elettronica','email')+field('billing_address','Indirizzo per fatturazione','text',true)+
- '<div class="wide"><h2>Rappresentanza e posizioni amministrative</h2></div>'+field('legal_representative','Titolare / legale rappresentante','text',true)+field('representative_tax_code','Codice fiscale rappresentante')+field('fiscal_regime','Regime fiscale')+field('inps_position','Posizione / matricola INPS')+field('inail_position','Posizione / codice INAIL')+
- '<div class="wide"><h2>Registrazioni e sicurezza alimentare</h2><p class="muted">Riporta gli estremi effettivi presenti nelle comunicazioni e autorizzazioni. Non inserire dati presunti.</p></div>'+field('asl_authority','ASL / ATS competente','text',true)+field('health_registration_number','Numero registrazione / notifica sanitaria')+field('health_registration_date','Data notifica sanitaria','date')+field('haccp_manager','Responsabile autocontrollo HACCP')+field('haccp_plan_revision','Data revisione piano HACCP','date')+field('food_activity_description','Attività alimentare esercitata','text',true)+
- '<div class="wide"><h2>Altri riferimenti e annotazioni</h2></div>'+field('insurance_policy','Assicurazione / polizza RC')+field('certifications','Certificazioni')+area('notes','Note e ulteriori riferimenti')+
- '<div class="wide actions" style="justify-content:flex-end"><span class="muted" style="margin-right:auto">Ultimo aggiornamento: '+esc(d.updated_at?new Date(d.updated_at).toLocaleString('it-IT'):'non ancora salvata')+'</span><button class="btn gold" type="submit">Salva anagrafica aziendale</button></div></form>'+
- '<div class="notice">Compila esclusivamente i dati reali e verificati. Questa scheda è un archivio interno: non sostituisce visura camerale, certificati, SCIA o notifica sanitaria, né verifica automaticamente la validità dei dati.</div>';
+ '<div class="wide"><h2>Dati azienda</h2></div>'+
+ field('business_name','Ragione sociale / Nome attività','text',true)+
+ field('vat_number','Partita IVA')+field('tax_code','Codice fiscale')+
+ field('legal_representative','Titolare / Referente')+
+ '<div class="wide"><h2>Sede e contatti</h2></div>'+
+ field('registered_address','Indirizzo sede','text',true)+
+ field('registered_postcode','CAP')+field('registered_city','Comune')+field('registered_province','Provincia')+
+ field('phone','Telefono','tel')+field('email','Email','email')+field('pec','PEC','email')+
+ '<div class="wide"><h2>Fatturazione e attività</h2></div>'+
+ field('recipient_code','Codice destinatario SDI')+
+ field('asl_authority','ASL competente')+field('health_registration_number','Numero notifica sanitaria')+
+ '<div class="wide actions" style="justify-content:flex-end"><span class="muted" style="margin-right:auto">Ultimo aggiornamento: '+esc(d.updated_at?new Date(d.updated_at).toLocaleString('it-IT'):'non ancora salvata')+'</span><button class="btn gold" type="submit">Salva anagrafica</button></div></form>'+
+ '<div class="notice">Inserisci i dati ufficiali dell’attività. Potrai modificarli in qualsiasi momento.</div>';
 }
 async function saveCompanyProfile(event){
  event.preventDefault();
  if(activeProfile?.role!=='admin'||!activeUser)throw new Error('Solo il titolare può modificare l’anagrafica aziendale.');
  const form=event.currentTarget,button=form.querySelector('button[type="submit"]');
- const data=Object.fromEntries(new FormData(form));
+ const data={...(db.companyProfile?.[0]||{}),...Object.fromEntries(new FormData(form))};
  data.id='company-profile-'+activeUser.id;
  data.updated_at=new Date().toISOString();
  data.updated_by=activeUser.id;
