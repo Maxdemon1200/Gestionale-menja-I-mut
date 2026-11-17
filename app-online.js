@@ -1412,3 +1412,40 @@ modulePage=function(){if(page==='Sicurezza')return menjaSafetyPage();return menj
 const menjaExportDataBeforeSecurity=exportData;
 const menjaImportBackupBeforeSecurity=importBackup;
 window.setInterval(()=>{if(activeProfile?.role==='admin'&&onlineClient&&window.__menjaDailyBackupDate!==new Date().toISOString().slice(0,10)&&Array.isArray(db.orders))menjaRunDailyBackup()},2000);
+
+
+/* Promemoria settimanale backup manuale: avviso persistente nell'area contenuti per il titolare */
+window.__menjaWeeklyBackupReminderDue=false;
+window.__menjaWeeklyBackupReminderCheckedAt=0;
+window.__menjaWeeklyBackupReminderBusy=false;
+async function menjaCheckWeeklyBackupReminder(){
+ if(activeProfile?.role!=='admin'||!onlineClient||window.__menjaWeeklyBackupReminderBusy||Date.now()-window.__menjaWeeklyBackupReminderCheckedAt<60000)return;
+ window.__menjaWeeklyBackupReminderBusy=true;
+ window.__menjaWeeklyBackupReminderCheckedAt=Date.now();
+ try{
+  const rows=await menjaBackupGetAll();
+  const manual=rows.filter(x=>x.backup_type==='manual'&&x.created_at).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  const latest=manual[0];
+  const due=!latest||!Number.isFinite(new Date(latest.created_at).getTime())||(Date.now()-new Date(latest.created_at).getTime())>=7*24*60*60*1000;
+  const changed=due!==window.__menjaWeeklyBackupReminderDue;
+  window.__menjaWeeklyBackupReminderDue=due;
+  if(changed)menjaRenderWeeklyBackupReminder();
+ }catch(error){console.warn('Controllo promemoria backup manuale non riuscito:',error)}
+ finally{window.__menjaWeeklyBackupReminderBusy=false}
+}
+function menjaRenderWeeklyBackupReminder(){
+ const host=document.getElementById('view');if(!host)return;
+ host.querySelector('#menjaWeeklyBackupReminder')?.remove();
+ if(activeProfile?.role!=='admin'||!window.__menjaWeeklyBackupReminderDue)return;
+ const banner=document.createElement('section');
+ banner.id='menjaWeeklyBackupReminder';
+ banner.setAttribute('role','alert');
+ banner.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:0 0 16px;padding:14px 16px;border:1px solid #e3b341;border-left:5px solid #d69e18;border-radius:12px;background:#fff8df;color:#49370b';
+ banner.innerHTML='<div><strong style="display:block;margin-bottom:3px">Promemoria backup settimanale</strong><span>È il momento di creare e conservare una nuova copia manuale dei dati.</span></div><button class="btn gold" type="button" onclick="menjaManualBackup()">Crea backup adesso</button>';
+ host.insertBefore(banner,host.firstChild);
+}
+const menjaRenderBeforeWeeklyBackupReminder=render;
+render=function menjaRenderWithWeeklyBackupReminder(){menjaRenderBeforeWeeklyBackupReminder();menjaRenderWeeklyBackupReminder()};
+const menjaManualBackupBeforeWeeklyReminder=menjaManualBackup;
+menjaManualBackup=async function(){await menjaManualBackupBeforeWeeklyReminder();window.__menjaWeeklyBackupReminderCheckedAt=0;await menjaCheckWeeklyBackupReminder();menjaRenderWeeklyBackupReminder()};
+window.setInterval(menjaCheckWeeklyBackupReminder,5000);
