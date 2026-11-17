@@ -419,7 +419,84 @@ function customerPriceListPage(){const ids=Array.isArray(activeProfile?.price_li
 let selectedAdminOrderId=null;
 let showOnlyNewOrders=false;
 function toggleNewOrdersFilter(){showOnlyNewOrders=!showOnlyNewOrders;render()}
-function openAdminOrder(id){dismissOwnerOrderNotice();selectedAdminOrderId=id;page='Ordini';render()}
+let adminOrderLotDraft={counts:{},values:{}};
+function openAdminOrder(id){dismissOwnerOrderNotice();selectedAdminOrderId=id;adminOrderLotDraft={counts:{},values:{}};const order=db.orders.find(o=>String(o.id)===String(id));(order?.lines||[]).forEach((line,index)=>adminOrderLotDraft.counts[index]=1);page='Ordini';render()}
+function captureAdminOrderLotDraft(){
+ const form=document.getElementById('adminOrderLotForm');if(!form)return;
+ const data=new FormData(form);adminOrderLotDraft.values={};
+ for(const [key,value] of data.entries())adminOrderLotDraft.values[key]=value;
+}
+function addAdminOrderLotRow(lineIndex){
+ captureAdminOrderLotDraft();
+ adminOrderLotDraft.counts[lineIndex]=(adminOrderLotDraft.counts[lineIndex]||1)+1;
+ render();
+}
+function adminOrderLotAssignmentPanel(order){
+ const lines=Array.isArray(order.lines)?order.lines:[];
+ if(!lines.length)return '<section class="box"><h2>Assegnazione lotti obbligatoria</h2><div class="notice">Questo ordine non contiene il dettaglio strutturato dei prodotti. Non è possibile assegnare i lotti in sicurezza: verifica il dettaglio dell’ordine prima di approvarlo.</div></section>';
+ const sold=menjaLotSoldAllocations();
+ const rows=lines.map((line,index)=>{
+  const product=String(line.product||line.name||'Prodotto').trim(),needed=Number(line.quantity??line.qty)||0;
+  const candidates=db.lots.filter(l=>String(l.product||'').trim().toLocaleLowerCase('it-IT')===product.toLocaleLowerCase('it-IT')&&!['In quarantena','Bloccato'].includes(String(l.status||''))&&menjaLotAvailableQty(l,sold)>0).sort((a,b)=>String(a.production_date||a.date||'').localeCompare(String(b.production_date||b.date||'')));
+  const available=candidates.reduce((sum,l)=>sum+menjaLotAvailableQty(l,sold),0),count=adminOrderLotDraft.counts[index]||1;
+  const allocationRows=Array.from({length:count},(_,row)=>{
+   const lotName='admin_order_lot_'+index+'_'+row,qtyName='admin_order_lot_qty_'+index+'_'+row;
+   const chosen=adminOrderLotDraft.values[lotName]||'',qty=adminOrderLotDraft.values[qtyName]??(row===0?String(needed):'0');
+   const options='<option value="">Seleziona lotto</option>'+candidates.map(l=>'<option value="'+esc(l.id)+'" '+(String(chosen)===String(l.id)?'selected':'')+'>'+esc(l.code||'Lotto')+' · '+esc(l.production_date||l.date||'')+' · disponibili '+menjaLotAvailableQty(l,sold)+'</option>').join('');
+   return '<div style="display:grid;grid-template-columns:minmax(0,1fr) 105px;gap:8px;margin:7px 0"><select class="field" name="'+lotName+'">'+options+'</select><input class="field" type="number" name="'+qtyName+'" min="0" step="1" value="'+esc(qty)+'" aria-label="Quantità dal lotto"></div>';
+  }).join('');
+  return '<div style="padding:13px;border:1px solid var(--line);border-radius:12px;margin:10px 0"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><strong>'+esc(product)+'</strong><span>Richieste: <b>'+needed+'</b> · Disponibili: <b>'+available+'</b></span></div>'+allocationRows+'<div class="muted" style="font-size:12px">La somma delle quantità assegnate deve essere esattamente '+needed+'. '+(available<needed?'<strong style="color:#b42318">Quantità insufficiente: mancano '+(needed-available)+' basi.</strong>':'')+'</div><button type="button" class="smallbtn" style="margin-top:8px" onclick="addAdminOrderLotRow('+index+')">＋ Aggiungi un altro lotto</button></div>';
+ }).join('');
+ return '<section class="box"><h2>Controllo magazzino e assegnazione lotti</h2><p class="muted">Prima di approvare, controlla la disponibilità reale e assegna ogni base a uno o più lotti presenti in magazzino.</p><form id="adminOrderLotForm" onsubmit="event.preventDefault();approveOrderWithLots(\''+order.id+'\')">'+rows+'<div class="notice">L’ordine non verrà approvato se anche una sola quantità non è coperta da lotti disponibili.</div><button class="btn gold" type="submit">✓ Verifica lotti e approva ordine</button></form></section>';
+}
+async function approveOrderWithLots(id){
+ try{
+  if(activeProfile?.role!=='admin')throw new Error('Solo il titolare può approvare gli ordini.');
+  captureAdminOrderLotDraft();
+  const form=document.getElementById('adminOrderLotForm');if(!form)throw new Error('Pannello assegnazione lotti non trovato.');
+  const values=new FormData(form);
+  await loadOnlineData();
+  const order=db.orders.find(o=>String(o.id)===String(id));
+  if(!order||order.status!=='Da approvare')throw new Error('L’ordine non è più in attesa di approvazione. Aggiorna la pagina.');
+  if(!Array.isArray(order.lines)||!order.lines.length)throw new Error('Ordine senza righe prodotto: impossibile assegnare i lotti in sicurezza.');
+  const sold=menjaLotSoldAllocations(),reserved=new Map(),updatedLines=[];
+  for(let index=0;index<order.lines.length;index++){
+   const line=order.lines[index],product=String(line.product||line.name||'Prodotto').trim(),needed=Number(line.quantity??line.qty)||0;
+   if(!Number.isInteger(needed)||needed<1)throw new Error('Quantità non valida per '+product+'.');
+   const allocations=[];let sum=0;
+   for(let row=0;row<(adminOrderLotDraft.counts[index]||1);row++){
+    const lotId=String(values.get('admin_order_lot_'+index+'_'+row)||''),quantity=Number(values.get('admin_order_lot_qty_'+index+'_'+row)||0);
+    if(!lotId&&quantity===0)continue;
+    if(!lotId||!Number.isInteger(quantity)||quantity<1)throw new Error('Completa lotto e quantità per '+product+' (riga '+(row+1)+').');
+    const lot=db.lots.find(l=>String(l.id)===lotId);
+    if(!lot||String(lot.product||'').trim().toLocaleLowerCase('it-IT')!==product.toLocaleLowerCase('it-IT'))throw new Error('Il lotto selezionato non corrisponde al prodotto '+product+'.');
+    if(['In quarantena','Bloccato'].includes(String(lot.status||'')))throw new Error('Il lotto '+(lot.code||'')+' è bloccato o in quarantena e non può essere assegnato.');
+    const already=reserved.get(lotId)||0,available=menjaLotAvailableQty(lot,sold)-already;
+    if(quantity>available)throw new Error('Il lotto '+(lot.code||'')+' non ha abbastanza basi. Disponibili ancora: '+available+'.');
+    reserved.set(lotId,already+quantity);sum+=quantity;
+    allocations.push({lot_id:lot.id,lot_code:lot.code||'',quantity});
+   }
+   if(sum!==needed)throw new Error('Per '+product+' hai assegnato '+sum+' basi su '+needed+' richieste. Devi coprire esattamente tutta la quantità.');
+   updatedLines.push({...line,lot_allocations:allocations,...(allocations.length===1?{lot_id:allocations[0].lot_id,lot_code:allocations[0].lot_code}:{lot_id:null,lot_code:null})});
+  }
+  const lotIds=[...new Set(updatedLines.flatMap(line=>(line.lot_allocations||[]).map(a=>String(a.lot_id))))];
+  const itemText=updatedLines.map(line=>(line.lot_allocations||[]).map(a=>a.quantity+' × '+(line.product||line.name||'Prodotto')+' ['+a.lot_code+']').join(', ')).join(', ');
+  const updated={...order,lines:updatedLines,lot_ids:lotIds,items:itemText,status:'Confermato',confirmed_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+  const {data,error}=await onlineClient.from('records').update({payload:updated}).eq('id',id).eq('kind','orders').select('id').maybeSingle();
+  if(error)throw error;if(!data)throw new Error('Approvazione non salvata dal database. Nessun lotto è stato assegnato.');
+  const local=db.orders.find(o=>String(o.id)===String(id));if(local)Object.assign(local,updated);
+  let customerId=order.customer_id||null;
+  if(!customerId&&order.customer_code){const{data:profile}=await onlineClient.from('profiles').select('id').eq('customer_code',order.customer_code).maybeSingle();customerId=profile?.id||null}
+  if(!customerId&&order.customer_email){const{data:profile}=await onlineClient.from('profiles').select('id').eq('email',order.customer_email).maybeSingle();customerId=profile?.id||null}
+  if(customerId){
+   const title='Ordine accettato',body='Il tuo ordine '+(order.code||'')+' è stato confermato dal titolare.';
+   const{error:notificationError}=await onlineClient.from('notifications').insert({user_id:customerId,order_id:String(order.id),order_code:String(order.code||''),notification_type:'order_accepted',title,body});
+   if(notificationError)console.error('Ordine approvato ma notifica interna non salvata:',notificationError);
+   else{const{error:pushError}=await onlineClient.functions.invoke('send-order-push',{body:{user_id:customerId,title,body}});if(pushError)console.warn('Notifica push non inviata:',pushError)}
+  }
+  adminOrderLotDraft={counts:{},values:{}};syncPendingOrderBadge();render();
+ }catch(error){showError(error)}
+}
 function closeAdminOrder(){selectedAdminOrderId=null;render()}
 function orderPendingIndicator(order){return order?.status==='Da approvare'?'<span class="order-status-dot" title="Ordine nuovo da approvare" aria-label="Da approvare" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#ef4444;box-shadow:0 0 0 3px #ef444422;margin-right:7px;vertical-align:middle"></span>':''}
 function orderPickupAlertClass(order){
@@ -443,7 +520,8 @@ function lotTraceResults(code){
  const lotId=String(lot?.id||''),lotCode=String(lot?.code||code).trim().toLocaleLowerCase('it-IT'),results=[];
  for(const order of db.orders){
   const lines=Array.isArray(order.lines)?order.lines:[];
-  const explicitLines=lines.filter(line=>{const c=String(line.lot_code||'').trim().toLocaleLowerCase('it-IT'),id=String(line.lot_id||'').trim().toLocaleLowerCase('it-IT');return c===query||c===lotCode||(lotId&&id===lotId)||id===query});
+  const expandedLines=lines.flatMap(line=>Array.isArray(line.lot_allocations)&&line.lot_allocations.length?line.lot_allocations.map(part=>({...line,quantity:part.quantity,lot_id:part.lot_id,lot_code:part.lot_code})): [line]);
+  const explicitLines=expandedLines.filter(line=>{const c=String(line.lot_code||'').trim().toLocaleLowerCase('it-IT'),id=String(line.lot_id||'').trim().toLocaleLowerCase('it-IT');return c===query||c===lotCode||(lotId&&id===lotId)||id===query});
   const ids=Array.isArray(order.lot_ids)?order.lot_ids.map(String):[];
   const linked=!!(lotId&&ids.includes(lotId))||ids.some(id=>id.toLocaleLowerCase('it-IT')===query||id.toLocaleLowerCase('it-IT')===lotCode);
   const itemText=String(order.items||''),textMatches=[];
@@ -479,7 +557,8 @@ function adminOrdersPage(){
   const linesHtml=lines.length
    ?'<div class="tablewrap"><table class="table"><thead><tr><th>Prodotto</th><th>Quantità</th><th>Prezzo unitario</th><th>Totale</th></tr></thead><tbody>'+lines.map(line=>'<tr><td>'+esc(line.product||line.name||'Prodotto')+'</td><td>'+esc(line.quantity??line.qty??'—')+'</td><td>'+(line.unit_price!==undefined?'€ '+Number(line.unit_price||0).toFixed(2):'—')+'</td><td>'+(line.line_total!==undefined?'€ '+Number(line.line_total||0).toFixed(2):(line.unit_price!==undefined?'€ '+(Number(line.unit_price||0)*Number(line.quantity||line.qty||0)).toFixed(2):'—'))+'</td></tr>').join('')+'</tbody></table></div>'
    :'<div class="notice">'+esc(selected.items||'Dettaglio prodotti non presente in questo ordine.')+'</div>';
-  return '<div class="head"><div><h1>'+orderPendingIndicator(selected)+'Ordine '+esc(selected.code||'')+'</h1><div class="muted">'+esc(selected.customer||'Cliente')+' · '+esc(formatCustomerPickupDate(selected.pickup))+'</div></div><div class="actions"><button class="btn" onclick="closeAdminOrder()">← Torna agli ordini</button></div></div><section class="box"><div class="grid two"><div><small class="muted">CLIENTE</small><h2>'+esc(selected.customer||'—')+'</h2><p>'+esc(selected.customer_email||'')+'</p><p>Codice cliente: '+esc(selected.customer_code||'—')+'</p></div><div><small class="muted">RITIRO</small><h2>'+esc(formatCustomerPickupDate(selected.pickup))+'</h2><p>Stato: '+orderPendingIndicator(selected)+'<span class="badge">'+esc(selected.status||'Da approvare')+'</span></p><p>Ordine: '+esc(selected.code||'—')+'</p></div></div><h2>Prodotti e quantità</h2>'+linesHtml+'<div class="grid two" style="margin-top:16px"><div><small class="muted">NOTE DEL CLIENTE</small><p>'+esc(selected.notes||'Nessuna nota')+'</p></div><div><small class="muted">TOTALE ORDINE</small><h2>€ '+Number(selected.total||0).toFixed(2)+'</h2></div></div><div class="actions" style="margin-top:18px">'+(selected.status==='Da approvare'?'<button class="btn gold" onclick="setOrderStatus(\''+selected.id+'\',\'Confermato\')">✓ Approva ordine</button><button class="btn" onclick="setOrderStatus(\''+selected.id+'\',\'Rifiutato\')">Rifiuta ordine</button>':'')+(selected.status!=='Annullato'?'<button class="btn" onclick="setOrderStatus(\''+selected.id+'\',\'Annullato\')">✕ Annulla ordine</button>':'')+(selected.status!=='Pronto per il ritiro'&&selected.status!=='Consegnato'&&selected.status!=='Annullato'?'<button class="btn gold" onclick="setOrderStatus(\''+selected.id+'\',\'Pronto per il ritiro\')">✓ Ordine pronto</button>':'')+(selected.status!=='Consegnato'&&selected.status!=='Annullato'?'<button class="btn gold" onclick="setOrderStatus(\''+selected.id+'\',\'Consegnato\')">✓ Ordine consegnato</button>':'')+'</div></section>';
+  const lotAssignmentHtml=selected.status==='Da approvare'?adminOrderLotAssignmentPanel(selected):(lines.length?'<section class="box"><h2>Lotti assegnati</h2>'+lines.map(line=>'<p><strong>'+esc(line.product||line.name||'Prodotto')+'</strong> · '+((line.lot_allocations||[]).length?line.lot_allocations.map(a=>esc(a.lot_code||a.lot_id)+' × '+esc(a.quantity)).join(' · '):(line.lot_code?esc(line.lot_code):'Assegnazione storica non disponibile'))+'</p>').join('')+'</section>':'');
+  return '<div class="head"><div><h1>'+orderPendingIndicator(selected)+'Ordine '+esc(selected.code||'')+'</h1><div class="muted">'+esc(selected.customer||'Cliente')+' · '+esc(formatCustomerPickupDate(selected.pickup))+'</div></div><div class="actions"><button class="btn" onclick="closeAdminOrder()">← Torna agli ordini</button></div></div><section class="box"><div class="grid two"><div><small class="muted">CLIENTE</small><h2>'+esc(selected.customer||'—')+'</h2><p>'+esc(selected.customer_email||'')+'</p><p>Codice cliente: '+esc(selected.customer_code||'—')+'</p></div><div><small class="muted">RITIRO</small><h2>'+esc(formatCustomerPickupDate(selected.pickup))+'</h2><p>Stato: '+orderPendingIndicator(selected)+'<span class="badge">'+esc(selected.status||'Da approvare')+'</span></p><p>Ordine: '+esc(selected.code||'—')+'</p></div></div><h2>Prodotti e quantità</h2>'+linesHtml+'<div class="grid two" style="margin-top:16px"><div><small class="muted">NOTE DEL CLIENTE</small><p>'+esc(selected.notes||'Nessuna nota')+'</p></div><div><small class="muted">TOTALE ORDINE</small><h2>€ '+Number(selected.total||0).toFixed(2)+'</h2></div></div>'+lotAssignmentHtml+'<div class="actions" style="margin-top:18px">'+(selected.status==='Da approvare'?'<button class="btn" onclick="setOrderStatus(\''+selected.id+'\',\'Rifiutato\')">Rifiuta ordine</button>':'')+(selected.status!=='Annullato'?'<button class="btn" onclick="setOrderStatus(\''+selected.id+'\',\'Annullato\')">✕ Annulla ordine</button>':'')+(selected.status!=='Pronto per il ritiro'&&selected.status!=='Consegnato'&&selected.status!=='Annullato'?'<button class="btn gold" onclick="setOrderStatus(\''+selected.id+'\',\'Pronto per il ritiro\')">✓ Ordine pronto</button>':'')+(selected.status!=='Consegnato'&&selected.status!=='Annullato'?'<button class="btn gold" onclick="setOrderStatus(\''+selected.id+'\',\'Consegnato\')">✓ Ordine consegnato</button>':'')+'</div></section>';
  }
 const rows=displayedOrders.map(o=>{const alert=orderPickupAlertClass(o);const code=esc(o.code||'—');const alertCode=alert?'<span class="order-pickup-alert order-pickup-alert--'+alert+'" title="'+(alert==='today'?'Consegna prevista oggi':'Consegna prevista domani')+'">'+code+'</span>':code;return [alertCode,esc(o.customer||'—'),esc(formatCustomerPickupDate(o.pickup)),o.total!==undefined&&o.total!==''?'€ '+Number(o.total||0).toFixed(2):'Da definire',orderPendingIndicator(o)+'<span class="badge">'+esc(o.status||'Da approvare')+'</span>','<button class="smallbtn" onclick="openAdminOrder(\''+o.id+'\')">Apri ordine →</button> '+(o.status==='Pagato'?'<span class="badge" style="background:#e7f5ec;color:#176b3a">✓ Pagato</span>':'<button class="smallbtn" style="color:#176b3a;border-color:#176b3a" onclick="setOrderStatus(\''+o.id+'\',\'Pagato\')">€ Pagato</button>')+' <button class="smallbtn" style="color:#b42318;border-color:#b42318" onclick="deleteAdminOrder(\''+o.id+'\')">Elimina ordine</button>'];});
  const newCount=orders.filter(o=>o.status==='Da approvare').length;
@@ -572,6 +651,8 @@ function menjaLotSoldAllocations(){
    for(const line of order.lines){
     const key=String(line.product||line.name||'').trim().toLocaleLowerCase('it-IT'),quantity=Math.max(0,Number(line.quantity??line.qty)||0);
     if(!key||!quantity)continue;
+    const splitAllocations=Array.isArray(line.lot_allocations)?line.lot_allocations:[];
+    if(splitAllocations.length){for(const part of splitAllocations)allocate(lotById.get(String(part.lot_id||'')),Math.max(0,Number(part.quantity)||0),true);continue}
     const explicitId=line.lot_id?String(line.lot_id):'';
     if(explicitId){allocate(lotById.get(explicitId),quantity,true);continue}
     let pending=quantity;
@@ -716,6 +797,7 @@ async function setOrderStatus(id,status){
   if(!['Confermato','Rifiutato','Annullato','Pronto per il ritiro','Consegnato','Pagato'].includes(status))throw new Error('Stato ordine non valido.');
   const item=db.orders.find(x=>String(x.id)===String(id));
   if(!item)throw new Error('Ordine non trovato. Aggiorna la pagina e riprova.');
+  if(status==='Confermato'&&item.status==='Da approvare')throw new Error('Per approvare questo ordine devi prima aprirlo, controllare le disponibilità e assegnare i lotti a tutte le basi.');
   if(status==='Pagato'&&!confirm('Confermi di aver ricevuto il pagamento dell’ordine '+(item.code||'')+' di '+orderCustomerName(item)+' per € '+Number(item.total||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})+'?\n\nSolo dopo la conferma l’ordine verrà tolto da Ordini e inserito in Finanza.'))return;
   const updatedPayload={...item,status,...(status==='Pagato'?{paid_at:new Date().toISOString()}: {})};
   const {data,error}=await onlineClient.from('records').update({payload:updatedPayload}).eq('id',id).eq('kind','orders').select('id').maybeSingle();
