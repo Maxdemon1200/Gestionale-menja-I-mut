@@ -433,7 +433,39 @@ function orderPickupAlertClass(order){
  if(day-now===86400000)return 'tomorrow';
  return '';
 }
+let lotTraceMode=false,lotTraceQuery='';
+function openLotTrace(){lotTraceMode=true;selectedAdminOrderId=null;render()}
+function closeLotTrace(){lotTraceMode=false;lotTraceQuery='';render()}
+function submitLotTrace(event){event.preventDefault();lotTraceQuery=String(new FormData(event.currentTarget).get('lot_code')||'').trim();render()}
+function lotTraceResults(code){
+ const query=String(code||'').trim().toLocaleLowerCase('it-IT');if(!query)return [];
+ const lot=db.lots.find(l=>String(l.code||'').trim().toLocaleLowerCase('it-IT')===query||String(l.id||'').trim().toLocaleLowerCase('it-IT')===query);
+ const lotId=String(lot?.id||''),lotCode=String(lot?.code||code).trim().toLocaleLowerCase('it-IT'),results=[];
+ for(const order of db.orders){
+  const lines=Array.isArray(order.lines)?order.lines:[];
+  const explicitLines=lines.filter(line=>{const c=String(line.lot_code||'').trim().toLocaleLowerCase('it-IT'),id=String(line.lot_id||'').trim().toLocaleLowerCase('it-IT');return c===query||c===lotCode||(lotId&&id===lotId)||id===query});
+  const ids=Array.isArray(order.lot_ids)?order.lot_ids.map(String):[];
+  const linked=!!(lotId&&ids.includes(lotId))||ids.some(id=>id.toLocaleLowerCase('it-IT')===query||id.toLocaleLowerCase('it-IT')===lotCode);
+  const itemText=String(order.items||''),textMatches=[];
+  const legacyPattern=/(?:^|[,;\n])\s*([0-9]+(?:[.,][0-9]+)?)\s*[×x*]\s*(.*?)\s*\[([^\]]+)\]/gi;
+  let match;while((match=legacyPattern.exec(itemText))!==null){if(String(match[3]).trim().toLocaleLowerCase('it-IT')===query||String(match[3]).trim().toLocaleLowerCase('it-IT')===lotCode)textMatches.push({quantity:Number(match[1].replace(',','.'))||0,product:match[2].trim()})}
+  if(!explicitLines.length&&!linked&&!textMatches.length)continue;
+  let quantity=0,products=[];
+  if(explicitLines.length){for(const line of explicitLines){const qty=Number(line.quantity??line.qty)||0;quantity+=qty;products.push((line.product||line.name||lot?.product||'Prodotto')+' × '+qty)}}
+  else if(textMatches.length){for(const item of textMatches){quantity+=item.quantity;products.push(item.product+' × '+item.quantity)}}
+  else if(linked&&lines.length){for(const line of lines){const name=String(line.product||line.name||'Prodotto');if(!lot?.product||name.trim().toLocaleLowerCase('it-IT')===String(lot.product).trim().toLocaleLowerCase('it-IT')){const qty=Number(line.quantity??line.qty)||0;quantity+=qty;products.push(name+' × '+qty)}}}
+  if(!quantity&&linked)quantity='Collegato';
+  results.push({order,quantity,products:products.join(', ')||order.items||lot?.product||'—'});
+ }
+ return results.sort((a,b)=>String(b.order.created_at||b.order.updated_at||b.order.pickup||'').localeCompare(String(a.order.created_at||a.order.updated_at||a.order.pickup||'')));
+}
+function lotTracePage(){
+ const code=lotTraceQuery.trim(),lot=code?db.lots.find(l=>String(l.code||'').trim().toLocaleLowerCase('it-IT')===code.toLocaleLowerCase('it-IT')||String(l.id||'')===code):null,results=code?lotTraceResults(code):[];
+ const rows=results.map(({order,quantity,products})=>[esc(order.code||'—'),esc(order.customer||'Cliente non indicato'),esc(order.customer_email||'—'),esc(formatCustomerPickupDate(order.pickup)||String(order.created_at||'').slice(0,10)||'—'),esc(products),esc(quantity),'<span class="badge">'+esc(order.status||'Stato non indicato')+'</span>']);
+ return '<div class="head"><div><h1>Tracciabilità lotto</h1><div class="muted">Ricerca tutti gli ordini collegati a un lotto, compresi quelli di clienti archiviati o eliminati</div></div><div class="actions"><button class="btn" onclick="closeLotTrace()">← Torna agli ordini</button></div></div><form class="box" onsubmit="submitLotTrace(event)"><label>Codice lotto<input class="field" name="lot_code" list="lotTraceCodes" required value="'+esc(code)+'" placeholder="Es. L-20261111-001"></label><datalist id="lotTraceCodes">'+db.lots.map(l=>'<option value="'+esc(l.code||'')+'">'+esc(l.product||'')+'</option>').join('')+'</datalist><div class="actions" style="margin-top:12px"><button class="btn gold" type="submit">Cerca lotto</button></div></form>'+(code?'<section class="box"><div class="grid two"><div><small class="muted">LOTTO CERCATO</small><h2>'+esc(lot?.code||code)+'</h2><div class="muted">'+esc(lot?.product||'Codice non presente nell’archivio lotti')+'</div></div><div><small class="muted">ORDINI TROVATI</small><h2>'+results.length+'</h2><div class="muted">Risultati nello storico completo</div></div></div>'+(rows.length?table(['Ordine','Cliente','Email','Data','Prodotti / quantità','Quantità lotto','Stato'],rows):'<div class="empty">Nessun ordine collegato a questo codice lotto.</div>')+'</section>':'<div class="empty">Inserisci un codice lotto per vedere tutti gli ordini che lo hanno ricevuto.</div>');
+}
 function adminOrdersPage(){
+ if(lotTraceMode)return lotTracePage();
  const orders=db.orders.filter(o=>o.status!=='Pagato').slice().sort((a,b)=>new Date(b.created_at||b.updated_at||0).getTime()-new Date(a.created_at||a.updated_at||0).getTime());
  const displayedOrders=showOnlyNewOrders?orders.filter(o=>o.status==='Da approvare'):orders;
  const selected=orders.find(o=>o.id===selectedAdminOrderId);
@@ -446,7 +478,7 @@ function adminOrdersPage(){
  }
 const rows=displayedOrders.map(o=>{const alert=orderPickupAlertClass(o);const code=esc(o.code||'—');const alertCode=alert?'<span class="order-pickup-alert order-pickup-alert--'+alert+'" title="'+(alert==='today'?'Consegna prevista oggi':'Consegna prevista domani')+'">'+code+'</span>':code;return [alertCode,esc(o.customer||'—'),esc(formatCustomerPickupDate(o.pickup)),o.total!==undefined&&o.total!==''?'€ '+Number(o.total||0).toFixed(2):'Da definire',orderPendingIndicator(o)+'<span class="badge">'+esc(o.status||'Da approvare')+'</span>','<button class="smallbtn" onclick="openAdminOrder(\''+o.id+'\')">Apri ordine →</button> '+(o.status==='Pagato'?'<span class="badge" style="background:#e7f5ec;color:#176b3a">✓ Pagato</span>':'<button class="smallbtn" style="color:#176b3a;border-color:#176b3a" onclick="setOrderStatus(\''+o.id+'\',\'Pagato\')">€ Pagato</button>')+' <button class="smallbtn" style="color:#b42318;border-color:#b42318" onclick="deleteAdminOrder(\''+o.id+'\')">Elimina ordine</button>'];});
  const newCount=orders.filter(o=>o.status==='Da approvare').length;
- return head('Ordini','Apri ogni richiesta per controllare prodotti, quantità e totale prima di approvarla')+'<div class="box"><div class="order-alert-legend"><span><i style="background:#1e4f91"></i> Consegna domani</span><span><i style="background:#176b43"></i> Consegna oggi</span></div><div class="toolbar"><input class="field" placeholder="Cerca ordine o cliente" oninput="filterRows(this)"><button class="smallbtn" onclick="toggleNewOrdersFilter()">'+(showOnlyNewOrders?'Mostra tutti gli ordini':'Nuovi ordini ('+newCount+')')+'</button><span class="muted">'+displayedOrders.length+' ordini</span></div>'+(rows.length?table(['Numero','Cliente','Ritiro','Totale','Stato','Dettaglio'],rows):'<div class="empty">'+(showOnlyNewOrders?'Non ci sono nuovi ordini da approvare.':'Non ci sono ordini registrati.')+'</div>')+'</div>';
+ return head('Ordini','Apri ogni richiesta per controllare prodotti, quantità e totale prima di approvarla', '<button class="btn" onclick="openLotTrace()">⌕ Traccia lotto</button>')+'<div class="box"><div class="order-alert-legend"><span><i style="background:#1e4f91"></i> Consegna domani</span><span><i style="background:#176b43"></i> Consegna oggi</span></div><div class="toolbar"><input class="field" placeholder="Cerca ordine o cliente" oninput="filterRows(this)"><button class="smallbtn" onclick="toggleNewOrdersFilter()">'+(showOnlyNewOrders?'Mostra tutti gli ordini':'Nuovi ordini ('+newCount+')')+'</button><span class="muted">'+displayedOrders.length+' ordini</span></div>'+(rows.length?table(['Numero','Cliente','Ritiro','Totale','Stato','Dettaglio'],rows):'<div class="empty">'+(showOnlyNewOrders?'Non ci sono nuovi ordini da approvare.':'Non ci sono ordini registrati.')+'</div>')+'</div>';
 }
 
 let selectedProductionLotId=null;
