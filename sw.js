@@ -17,14 +17,14 @@ self.addEventListener("notificationclick", event => {
   }));
 });
 
-const CACHE_NAME = "menjaimut-pwa-v139";
+const CACHE_NAME = "menjaimut-pwa-v140";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./icon.svg",
   "./config.js?v=2",
-  "./app-online.js?v=125",
+  "./app-online.js?v=126",
   "./menjaimut.jpg"
 ];
 
