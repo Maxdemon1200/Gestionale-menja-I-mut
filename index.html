@@ -871,6 +871,39 @@ html.touch-mobile #mobileMore[hidden]{
  visibility:hidden!important;
  pointer-events:none!important;
 }
+
+/* MENU LATERALE DESKTOP: scroll stabile e senza sfarfallii */
+@media(min-width:821px){
+  body.admin-mode .app{min-height:100vh;align-items:stretch}
+  body.admin-mode .side{
+    position:sticky;
+    top:0;
+    height:100vh;
+    min-height:0;
+    overflow:hidden;
+    align-self:start;
+    contain:layout paint;
+  }
+  body.admin-mode .nav{
+    flex:1 1 auto;
+    min-height:0;
+    overflow-x:hidden;
+    overflow-y:auto;
+    overscroll-behavior-y:contain;
+    scrollbar-gutter:stable;
+    -webkit-overflow-scrolling:touch;
+    transform:translateZ(0);
+  }
+  body.admin-mode .nav button{
+    transform:none;
+    transition:background-color .16s ease,border-color .16s ease,color .16s ease;
+  }
+  body.admin-mode .nav button:hover{transform:none}
+  body.admin-mode .nav::-webkit-scrollbar{width:6px}
+  body.admin-mode .nav::-webkit-scrollbar-track{background:transparent}
+  body.admin-mode .nav::-webkit-scrollbar-thumb{background:#526253;border-radius:8px}
+}
+
 </style></head>
 <body><script>
 /* Rileva lo smartphone anche se Android assegna alla PWA una larghezza desktop */
