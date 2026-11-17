@@ -1271,17 +1271,19 @@ async function menjaManualBackup(){
  }catch(error){showError(error)}
 }
 async function menjaRunDailyBackup(){
- if(activeProfile?.role!=='admin'||!onlineClient||window.__menjaDailyBackupDone)return;
- window.__menjaDailyBackupDone=true;
+ if(activeProfile?.role!=='admin'||!onlineClient)return;
+ const day=new Date().toISOString().slice(0,10);
+ if(window.__menjaDailyBackupDate===day)return;
+ window.__menjaDailyBackupDate=day;
  try{
-  const day=new Date().toISOString().slice(0,10),id='auto-'+day,existing=(await menjaBackupGetAll()).some(x=>x.id===id);
+  const id='auto-'+day,existing=(await menjaBackupGetAll()).some(x=>x.id===id);
   if(existing)return;
   const snapshot=await menjaCaptureBackup();snapshot.id=id;snapshot.backup_type='automatico';
   await menjaBackupPut(snapshot);
   const all=await menjaBackupGetAll(),automatic=all.filter(x=>x.backup_type==='automatico');
   for(const old of automatic.slice(7))await menjaBackupDelete(old.id);
   console.info('Backup automatico locale completato:',day);
- }catch(error){window.__menjaDailyBackupDone=false;console.warn('Backup automatico locale non riuscito:',error)}
+ }catch(error){window.__menjaDailyBackupDate=null;console.warn('Backup automatico locale non riuscito:',error)}
 }
 async function menjaRefreshBackupList(){
  const host=document.getElementById('menjaBackupList');if(!host)return;
@@ -1386,4 +1388,4 @@ const menjaModulePageBeforeSecurity=modulePage;
 modulePage=function(){if(page==='Sicurezza')return menjaSafetyPage();return menjaModulePageBeforeSecurity()};
 const menjaExportDataBeforeSecurity=exportData;
 const menjaImportBackupBeforeSecurity=importBackup;
-window.setInterval(()=>{if(activeProfile?.role==='admin'&&onlineClient&&!window.__menjaDailyBackupDone&&Array.isArray(db.orders))menjaRunDailyBackup()},2000);
+window.setInterval(()=>{if(activeProfile?.role==='admin'&&onlineClient&&window.__menjaDailyBackupDate!==new Date().toISOString().slice(0,10)&&Array.isArray(db.orders))menjaRunDailyBackup()},2000);
