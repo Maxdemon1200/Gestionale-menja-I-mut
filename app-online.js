@@ -547,6 +547,7 @@ async function setOrderStatus(id,status){
   if(!['Confermato','Rifiutato','Annullato','Pronto per il ritiro','Consegnato','Pagato'].includes(status))throw new Error('Stato ordine non valido.');
   const item=db.orders.find(x=>String(x.id)===String(id));
   if(!item)throw new Error('Ordine non trovato. Aggiorna la pagina e riprova.');
+  if(status==='Pagato'&&!confirm('Confermi di aver ricevuto il pagamento dell’ordine '+(item.code||'')+' di '+orderCustomerName(item)+' per € '+Number(item.total||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})+'?\n\nSolo dopo la conferma l’ordine verrà tolto da Ordini e inserito in Finanza.'))return;
   const updatedPayload={...item,status,...(status==='Pagato'?{paid_at:new Date().toISOString()}: {})};
   const {data,error}=await onlineClient.from('records').update({payload:updatedPayload}).eq('id',id).eq('kind','orders').select('id').maybeSingle();
   if(error)throw error;
