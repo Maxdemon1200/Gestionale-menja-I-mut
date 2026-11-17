@@ -1073,7 +1073,7 @@ async function saveCompanyProfile(event){
  if(activeProfile?.role!=='admin'||!activeUser)throw new Error('Solo il titolare può modificare l’anagrafica aziendale.');
  const form=event.currentTarget,button=form.querySelector('button[type="submit"]');
  const data={...(db.companyProfile?.[0]||{}),...Object.fromEntries(new FormData(form))};
- data.id='company-profile-'+activeUser.id;
+ data.id=activeUser.id;
  data.updated_at=new Date().toISOString();
  data.updated_by=activeUser.id;
  if(!String(data.business_name||'').trim()){alert('Inserisci la ragione sociale o il nome dell’attività.');return}
