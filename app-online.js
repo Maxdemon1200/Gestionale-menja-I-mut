@@ -1049,21 +1049,20 @@ function companyProfileSettingsPage(){
  if(activeProfile?.role!=='admin')return '<div class="box">Accesso non consentito.</div>';
  const d=db.companyProfile?.[0]||{};
  const field=(name,label,type='text',wide=false)=>'<label class="'+(wide?'wide':'')+'">'+label+'<input class="field" name="'+name+'" type="'+type+'" value="'+esc(d[name]||'')+'"></label>';
- return head('Anagrafica aziendale','I principali dati della tua attività')+
+ return head('Anagrafica aziendale','Dati essenziali della tua azienda')+
  '<form class="box formgrid" id="companyProfileForm" onsubmit="saveCompanyProfile(event)">'+
- '<div class="wide"><h2>Dati azienda</h2></div>'+
- field('business_name','Ragione sociale / Nome attività','text',true)+
+ '<div class="wide"><h2>Dati identificativi</h2></div>'+
+ field('business_name','Ragione sociale','text',true)+
  field('vat_number','Partita IVA')+field('tax_code','Codice fiscale')+
- field('legal_representative','Titolare / Referente')+
- '<div class="wide"><h2>Sede e contatti</h2></div>'+
- field('registered_address','Indirizzo sede','text',true)+
+ field('legal_representative','Titolare / Legale rappresentante')+
+ '<div class="wide"><h2>Sede legale</h2></div>'+
+ field('registered_address','Via e numero civico','text',true)+
  field('registered_postcode','CAP')+field('registered_city','Comune')+field('registered_province','Provincia')+
+ '<div class="wide"><h2>Contatti e fatturazione</h2></div>'+
  field('phone','Telefono','tel')+field('email','Email','email')+field('pec','PEC','email')+
- '<div class="wide"><h2>Fatturazione e attività</h2></div>'+
  field('recipient_code','Codice destinatario SDI')+
- field('asl_authority','ASL competente')+field('health_registration_number','Numero notifica sanitaria')+
  '<div class="wide actions" style="justify-content:flex-end"><span class="muted" style="margin-right:auto">Ultimo aggiornamento: '+esc(d.updated_at?new Date(d.updated_at).toLocaleString('it-IT'):'non ancora salvata')+'</span><button class="btn gold" type="submit">Salva anagrafica</button></div></form>'+
- '<div class="notice">Inserisci i dati ufficiali dell’attività. Potrai modificarli in qualsiasi momento.</div>';
+ '<div class="notice">Compila i dati riportati nei documenti ufficiali dell’azienda. I dati sono modificabili in qualsiasi momento.</div>';
 }
 async function saveCompanyProfile(event){
  event.preventDefault();
