@@ -109,20 +109,24 @@ async function refreshOwnerOrders(){
 async function refreshAdminChatNotifications(){
  if(activeProfile?.role!=='admin'||!onlineClient)return;
  try{
-  const{data,error}=await onlineClient.from('chat_messages').select('id,read_at').eq('sender_role','customer').is('read_at',null).limit(100);
+  const{data,error}=await onlineClient.from('chat_messages').select('id,customer_id,created_at,read_at').eq('sender_role','customer').is('read_at',null).order('created_at',{ascending:false}).limit(1000);
   if(error)throw error;
-  const fresh=data||[];
+  const fresh=data||[],unreadByCustomer={};
+  for(const message of fresh){const id=String(message.customer_id);if(!unreadByCustomer[id])unreadByCustomer[id]={count:0,latest:message.created_at||''};unreadByCustomer[id].count++;if(String(message.created_at||'')>String(unreadByCustomer[id].latest||''))unreadByCustomer[id].latest=message.created_at||'';}
+  const previous=JSON.stringify(window.__menjaUnreadByCustomer||{});
+  window.__menjaUnreadByCustomer=unreadByCustomer;
   window.__menjaUnreadChatCount=fresh.length;
   if(typeof navHTML==='function')navHTML();
   const newItems=adminKnownChatNotificationIds===null?[]:fresh.filter(n=>!adminKnownChatNotificationIds.has(String(n.id)));
   adminKnownChatNotificationIds=new Set(fresh.map(n=>String(n.id)));
   if(newItems.length){
-   const latest=newItems[0];
+   const latest=newItems[0],sender=db.customers.find(c=>String(c.id)===String(latest.customer_id));
    menjaPlayAlertSound();
    if('Notification' in window&&Notification.permission==='granted'){
-    try{new Notification(latest.title||'Nuovo messaggio in chat',{body:latest.body||'Hai ricevuto un nuovo messaggio',tag:'menja-chat-'+latest.id})}catch(e){console.warn('Notifica chat amministratore non disponibile:',e)}
+    try{new Notification('Nuovo messaggio da '+(sender?.name||'un cliente'),{body:'Hai ricevuto un nuovo messaggio',tag:'menja-chat-'+latest.id})}catch(e){console.warn('Notifica chat amministratore non disponibile:',e)}
    }
   }
+  if(page==='Clienti'&&previous!==JSON.stringify(unreadByCustomer))render();
  }catch(e){console.error('Aggiornamento notifiche chat amministratore non riuscito:',e)}
 }
 function startOwnerNoticeMonitoring(){
