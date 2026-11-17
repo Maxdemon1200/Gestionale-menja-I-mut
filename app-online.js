@@ -1015,7 +1015,7 @@ async function menjaAwardFidelityForPaidOrder(order){
  const lockKey=String(order.id);if(window.__menjaFidelityAwardLocks[lockKey])return;window.__menjaFidelityAwardLocks[lockKey]=true;
  try{
  if(activeProfile?.role!=='admin'||!onlineClient)throw new Error('Accredito fidelity non autorizzato.');
- if(String(order.status)!=='Pagato'||(!order.delivered_at&&String(order.status)!=='Consegnato'))throw new Error('La fidelity viene accreditata solo dopo consegna e pagamento.');
+ if(String(order.status)!=='Pagato'||!order.paid_at)throw new Error('La fidelity viene accreditata solo dopo la conferma del pagamento. La consegna viene verificata prima di registrare il pagamento.');
  const lines=Array.isArray(order.lines)?order.lines:[];
  const quantity=lines.reduce((sum,line)=>sum+Math.max(0,Number(line.quantity??line.qty)||0),0);
  if(!Number.isFinite(quantity)||quantity<=0)return;
