@@ -1054,6 +1054,7 @@ function companyProfileSettingsPage(){
  '<div class="wide"><h2>Dati identificativi</h2></div>'+
  field('business_name','Ragione sociale','text',true)+
  field('vat_number','Partita IVA')+field('tax_code','Codice fiscale')+
+ field('recipient_code','Codice univoco SDI')+
  field('legal_representative','Titolare / Legale rappresentante')+
  '<div class="wide"><h2>Sede legale</h2></div>'+
  field('registered_address','Via e numero civico','text',true)+
