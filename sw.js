@@ -1,11 +1,30 @@
-const CACHE_NAME = "menjaimut-pwa-v90";
+importScripts("https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js","https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js");
+
+const firebaseConfig = { apiKey: "AIzaSyCGnhppugKYaFy0jW_ofS_JsYU4QAneERCYyk51F1-JPugDMThGNgIVNHfGWUavZYlSZMY32EzEMRQY7I3-7FSw", authDomain: "menja-i-mut-gestionale.firebaseapp.com", projectId: "menja-i-mut-gestionale", storageBucket: "menja-i-mut-gestionale.firebasestorage.app", messagingSenderId: "825562456235", appId: "1:825562456235:web:096d370ed9f6cbd5ca17ee" };
+firebase.initializeApp(firebaseConfig);
+const messaging = firebase.messaging();
+messaging.onBackgroundMessage(payload => {
+  const title = payload.notification?.title || "Menja i Mut";
+  const options = { body: payload.notification?.body || "Hai un aggiornamento sul tuo ordine", icon: "./icon.svg", data: { url: payload.fcmOptions?.link || "./" } };
+  return self.registration.showNotification(title, options);
+});
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  const target = event.notification.data?.url || "./";
+  event.waitUntil(clients.matchAll({ type: "window", includeUncontrolled: true }).then(windows => {
+    for (const client of windows) { if (client.url.startsWith(self.location.origin) && "focus" in client) return client.focus(); }
+    return clients.openWindow(target);
+  }));
+});
+
+const CACHE_NAME = "menjaimut-pwa-v91";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./icon.svg",
   "./config.js?v=2",
-  "./app-online.js?v=77",
+  "./app-online.js?v=78",
   "./menjaimut.jpg"
 ];
 
