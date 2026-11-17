@@ -126,7 +126,7 @@ async function refreshAdminChatNotifications(){
     try{new Notification('Nuovo messaggio da '+(sender?.name||'un cliente'),{body:'Hai ricevuto un nuovo messaggio',tag:'menja-chat-'+latest.id})}catch(e){console.warn('Notifica chat amministratore non disponibile:',e)}
    }
   }
-  if(page==='Clienti'&&previous!==JSON.stringify(unreadByCustomer))render();
+  if(['Clienti','Chat clienti'].includes(page)&&previous!==JSON.stringify(unreadByCustomer))render();
  }catch(e){console.error('Aggiornamento notifiche chat amministratore non riuscito:',e)}
 }
 function startOwnerNoticeMonitoring(){
