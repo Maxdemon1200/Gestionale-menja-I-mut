@@ -973,6 +973,48 @@ body.customer-mode .loyalty-total-points span{margin-top:3px;font-size:7px;lette
 body.customer-mode .loyalty-client-tricolore{position:absolute;left:0;right:0;bottom:0;height:4px;background:linear-gradient(90deg,#16834b 0 33.33%,#f4f0e8 33.33% 66.66%,#bd3434 66.66% 100%);opacity:.85}
 @media(max-width:560px){body.customer-mode .loyalty-card{padding:18px 16px 16px;border-radius:19px}body.customer-mode .loyalty-card:before{inset:5px;border-radius:13px}body.customer-mode .loyalty-brand{gap:8px}body.customer-mode .loyalty-brand img{width:68px;height:51px}body.customer-mode .loyalty-brand strong{font-size:10px;letter-spacing:.12em}body.customer-mode .loyalty-brand span{font-size:7px;letter-spacing:.1em}body.customer-mode .loyalty-card-edition{font-size:7px;padding:6px 8px}body.customer-mode .loyalty-card-main{margin:14px 0 12px;gap:8px}body.customer-mode .loyalty-client-name{font-size:14px}body.customer-mode .loyalty-client-code{font-size:10px;letter-spacing:.07em}body.customer-mode .loyalty-client-points{min-width:92px}body.customer-mode .loyalty-client-points strong{font-size:43px}body.customer-mode .loyalty-client-points span{font-size:7px;letter-spacing:.12em}body.customer-mode .loyalty-progress{gap:3px;margin-bottom:10px}body.customer-mode .loyalty-step{height:6px}body.customer-mode .loyalty-reward strong{font-size:10px}body.customer-mode .loyalty-reward span{font-size:7px}body.customer-mode .loyalty-total-points strong{font-size:15px}}
 
+
+/* Tessera fidelity: ridimensionamento proporzionale su ogni larghezza */
+body.customer-mode .loyalty-card{
+  box-sizing:border-box!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  justify-content:space-between!important;
+  gap:0!important;
+  width:100%!important;
+  max-width:690px!important;
+  height:auto!important;
+  min-height:0!important;
+  aspect-ratio:690 / 258!important;
+  padding:3.8cqw!important;
+  container-type:inline-size;
+}
+body.customer-mode .loyalty-card-top{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:1.8cqw!important;min-width:0}
+body.customer-mode .loyalty-brand{display:flex!important;align-items:center!important;gap:1.8cqw!important;min-width:0}
+body.customer-mode .loyalty-brand img{width:13cqw!important;height:9.4cqw!important;max-width:none!important;flex:0 0 auto!important}
+body.customer-mode .loyalty-brand div{display:flex!important;flex-direction:column!important;gap:.55cqw!important;min-width:0}
+body.customer-mode .loyalty-brand strong{font-size:2.05cqw!important;letter-spacing:.14em!important;white-space:nowrap}
+body.customer-mode .loyalty-brand span{font-size:1.28cqw!important;letter-spacing:.12em!important;white-space:nowrap}
+body.customer-mode .loyalty-card-edition{font-size:1.3cqw!important;padding:1cqw 1.5cqw!important;white-space:nowrap}
+body.customer-mode .loyalty-card-main{display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:2cqw!important;margin:2cqw 0 1.5cqw!important;min-width:0}
+body.customer-mode .loyalty-card-identity{min-width:0;flex:1 1 auto}
+body.customer-mode .loyalty-client-name{font-size:2.65cqw!important;line-height:1.15!important}
+body.customer-mode .loyalty-client-code-label{margin-top:1.1cqw!important;font-size:1.15cqw!important;letter-spacing:.16em!important}
+body.customer-mode .loyalty-client-code{margin-top:.4cqw!important;font-size:1.85cqw!important;letter-spacing:.1em!important}
+body.customer-mode .loyalty-client-points{display:flex!important;flex:0 0 23cqw!important;min-width:0!important;align-items:flex-end!important;padding:0!important;border:0!important;text-align:right!important}
+body.customer-mode .loyalty-client-points strong{font-size:8.8cqw!important;line-height:.88!important}
+body.customer-mode .loyalty-client-points strong small{font-size:.38em!important}
+body.customer-mode .loyalty-client-points span{margin-top:1cqw!important;font-size:1.15cqw!important;letter-spacing:.16em!important}
+body.customer-mode .loyalty-progress{display:grid!important;grid-template-columns:repeat(12,minmax(0,1fr))!important;gap:.7cqw!important;margin:0 0 1.8cqw!important}
+body.customer-mode .loyalty-step{height:1.15cqw!important;min-height:0!important}
+body.customer-mode .loyalty-card-bottom{display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:1.5cqw!important;padding-top:1.5cqw!important}
+body.customer-mode .loyalty-reward{display:flex!important;flex-direction:column!important;gap:.5cqw!important;min-width:0}
+body.customer-mode .loyalty-reward strong{font-size:1.75cqw!important;line-height:1.1!important}
+body.customer-mode .loyalty-reward span{font-size:1.12cqw!important;letter-spacing:.08em!important}
+body.customer-mode .loyalty-total-points strong{font-size:2.45cqw!important;line-height:1!important}
+body.customer-mode .loyalty-total-points span{margin-top:.4cqw!important;font-size:1.05cqw!important}
+
 </style></head>
 <body><script>
 /* Rileva lo smartphone anche se Android assegna alla PWA una larghezza desktop */
@@ -1026,7 +1068,7 @@ if ("serviceWorker" in navigator) {
     window.location.reload();
   });
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=160", { scope: "./", updateViaCache: "none" }).then(registration => {
+    navigator.serviceWorker.register("./sw.js?v=161", { scope: "./", updateViaCache: "none" }).then(registration => {
       registration.update().catch(() => {});
     }).catch(err => console.warn("Service worker non disponibile:", err));
   });
