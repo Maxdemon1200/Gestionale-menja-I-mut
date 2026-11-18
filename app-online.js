@@ -1011,6 +1011,7 @@ async function signOut(){if(ownerNoticeTimer){clearInterval(ownerNoticeTimer);ow
 async function approveProfile(id,status){try{const value=({Attivo:'approved','In attesa di abilitazione':'pending',Sospeso:'suspended',Rifiutato:'rejected'})[status]||'approved';const {error}=await onlineClient.from('profiles').update({approval_status:value}).eq('id',id);if(error)throw error;await loadOnlineData();await refreshOwnerNotice();render()}catch(e){showError(e)}}
 
 async function menjaAwardFidelityForPaidOrder(order){
+ window.__menjaStage='accredito fidelity: verifica ordine';
  window.__menjaFidelityAwardLocks=window.__menjaFidelityAwardLocks||{};
  const lockKey=String(order.id);if(window.__menjaFidelityAwardLocks[lockKey])return;window.__menjaFidelityAwardLocks[lockKey]=true;
  try{
@@ -1036,7 +1037,8 @@ async function menjaAwardFidelityForPaidOrder(order){
  if(existing)return;
  const points=Math.round(quantity);
  const current=Math.max(0,Number(profile.fidelity_points)||0);
- const movement={id:movementId,order_id:String(order.id),customer_id:String(customerId),customer:orderCustomerName(order),code:order.customer_code||'',date:new Date().toISOString(),points,note:'Accredito automatico: '+points+' '+(points===1?'punto':'punti')+' per '+quantity+' basi dell’ordine '+(order.code||order.id),type:'accredito_ordine'};
+ window.__menjaStage='accredito fidelity: registrazione movimento';
+ const movement={id:crypto.randomUUID(),order_id:String(order.id),customer_id:String(customerId),customer:orderCustomerName(order),code:order.customer_code||'',date:new Date().toISOString(),points,note:'Accredito automatico: '+points+' '+(points===1?'punto':'punti')+' per '+quantity+' basi dell’ordine '+(order.code||order.id),type:'accredito_ordine'};
  const {data:profileUpdated,error:profileError}=await onlineClient.from('profiles').update({fidelity_points:current+points}).eq('id',customerId).select('id').maybeSingle();
  if(profileError)throw profileError;if(!profileUpdated)throw new Error('Saldo punti non aggiornato: profilo cliente non modificato.');
  try{await persistRecord('fidelity',movement)}catch(error){
