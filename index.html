@@ -5,7 +5,7 @@
 <title>Menja i Mut Gestionale</title><script src="config.js?v=2"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#101714;--panel:#19221d;--panel2:#202c25;--line:#34443a;--gold:#d7b568;--cream:#f4edda;--muted:#a8b1a8;--green:#6f9676;--red:#bd665c}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--cream);font:15px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}.app{display:grid;grid-template-columns:250px 1fr;min-height:100vh}.side{background:#131b17;border-right:1px solid var(--line);padding:22px 14px;display:flex;flex-direction:column;gap:18px}.brand{display:flex;align-items:center;gap:11px;padding:4px 8px 17px;border-bottom:1px solid var(--line)}.brand img{width:72px;height:72px;object-fit:contain;border-radius:50%;border:1px solid var(--gold);background:#050505;box-shadow:0 0 0 3px #d9b66d18,0 6px 18px #0007;flex:none}.brand b{display:block;letter-spacing:.13em;font-size:13px}.brand small{color:var(--gold);letter-spacing:.12em}.nav{display:grid;gap:4px;overflow:auto}.nav button{border:0;background:transparent;color:var(--muted);text-align:left;border-radius:9px;padding:11px 12px}.nav button:hover,.nav button.active{background:var(--panel2);color:var(--cream)}.nav button.active{box-shadow:inset 3px 0 var(--gold)}.nav-label{color:#78847a;font-size:10px;letter-spacing:.15em;padding:12px 12px 4px}.sidefoot{margin-top:auto;color:var(--muted);font-size:12px;padding:10px}.main{min-width:0}.top{height:68px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 30px;position:sticky;top:0;background:#101714ee;backdrop-filter:blur(10px);z-index:2}.top small{color:var(--muted)}.content{max-width:1400px;margin:auto;padding:30px}.head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px}.head h1{font-size:28px;margin:0 0 5px}.muted{color:var(--muted)}.btn{border:1px solid var(--line);background:var(--panel2);color:var(--cream);padding:10px 14px;border-radius:9px}.btn.gold{background:var(--gold);color:#1d1a11;border-color:var(--gold);font-weight:700}.btn:hover{filter:brightness(1.1)}.grid{display:grid;gap:16px}.cards{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:18px}.card,.box{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:19px}.card small{color:var(--muted)}.metric{font-size:28px;font-weight:700;margin:9px 0 2px}.notice{border:1px solid #695b37;background:#29251a;color:#ead9a8;border-radius:11px;padding:14px 16px;margin-bottom:18px}.two{grid-template-columns:1.25fr 1fr}.box h2{font-size:17px;margin:0 0 16px}.empty{color:var(--muted);text-align:center;padding:35px 12px}.tablewrap{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:680px}.table th,.table td{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line)}.table th{font-size:12px;color:var(--muted);font-weight:500}.badge{display:inline-block;border:1px solid #6d6041;color:#e5d49d;border-radius:20px;padding:3px 9px;font-size:12px}.toolbar{display:flex;gap:10px;align-items:center;margin-bottom:14px}.toolbar input{max-width:320px}.field,select,textarea{width:100%;background:#111915;border:1px solid var(--line);color:var(--cream);padding:10px 12px;border-radius:8px}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.formgrid label{font-size:13px;color:var(--muted);display:grid;gap:6px}.formgrid .wide{grid-column:1/-1}.modal{position:fixed;inset:0;background:#0009;display:grid;place-items:center;padding:20px;z-index:5}.dialog{width:min(620px,100%);max-height:90vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px}.dialog h2{margin:0 0 18px}.dialogfoot{display:flex;justify-content:flex-end;gap:9px;margin-top:18px}.actions{display:flex;gap:7px}.smallbtn{background:none;color:var(--gold);border:0;padding:4px}.pillrow{display:flex;gap:8px;flex-wrap:wrap}.producttile{padding:12px;border:1px solid var(--line);border-radius:9px;background:#141c18}.bottomnav{display:none}
-@media(max-width:560px){.loyalty-card{min-height:205px;padding:19px 17px;gap:10px;border-radius:18px}.loyalty-card:before{inset:5px;border-radius:13px}.loyalty-client-logo{width:66px;height:48px}.loyalty-client-points{min-width:92px;flex-basis:35%;padding-left:10px;min-height:125px}.loyalty-client-points strong{font-size:clamp(49px,15vw,68px)}.loyalty-client-points span{font-size:9px;letter-spacing:.22em}.loyalty-client-code{font-size:12px;letter-spacing:.08em}.loyalty-client-name{font-size:15px}}
+@media(max-width:560px){}
 @media(max-width:1000px){.app{grid-template-columns:210px 1fr}.cards{grid-template-columns:repeat(2,1fr)}.content{padding:22px}}
 @media(max-width:700px){.app{display:block}.side{display:none}.top{padding:0 17px;height:58px}.content{padding:20px 15px 90px}.head h1{font-size:24px}.cards{gap:10px}.card{padding:14px}.metric{font-size:24px}.two{grid-template-columns:1fr}.bottomnav{display:flex;position:fixed;bottom:0;left:0;right:0;background:#131b17;border-top:1px solid var(--line);overflow:auto;z-index:3}.bottomnav button{min-width:78px;flex:1;background:transparent;border:0;color:var(--muted);padding:9px 5px;font-size:11px}.bottomnav button.active{color:var(--gold)}.bottomnav span{display:block;font-size:17px}.head{align-items:center}.head .btn{padding:9px;font-size:13px}}
 
@@ -92,7 +92,7 @@ body.admin-mode .bottomnav button.active{color:#e4c47c}
 
 
 /* Area clienti: esperienza mobile moderna e fidelity digitale */
-body.customer-mode{background:#f2f0e9;color:#202820}body.customer-mode .app{background:#f2f0e9}body.customer-mode .side{background:#111a15;border-right:1px solid #26362c}body.customer-mode .main{background:#f2f0e9}body.customer-mode .top{background:#111a15;border-bottom:1px solid #26362c;color:#f5f0e3}body.customer-mode .content{padding:28px 30px 110px}body.customer-mode .muted{color:#727b70}body.customer-mode .head h1,body.customer-mode h1{color:#202820}body.customer-mode .box{background:#fff;border:1px solid #e3e0d6;border-radius:18px;box-shadow:0 8px 26px #18251a0b}body.customer-mode .field,body.customer-mode select,body.customer-mode textarea{background:#fff;border:1px solid #d9d8ce;border-radius:11px;color:#202820}body.customer-mode .btn{border-radius:11px}body.customer-mode .btn.gold{background:#c9a65d;color:#171b15;border:0}body.customer-mode .bottomnav{background:#111a15;border-top:1px solid #2a3a30;box-shadow:0 -8px 24px #00000012}body.customer-mode .bottomnav button{color:#aeb9af;font-size:10px;gap:4px}body.customer-mode .bottomnav button span{font-size:19px}body.customer-mode .bottomnav button.active{color:#e7c77e}.customer-home{max-width:920px;margin:0 auto}.customer-greeting{display:flex;justify-content:space-between;align-items:end;margin:4px 0 22px}.customer-greeting span{font-size:10px;font-weight:800;letter-spacing:.16em;color:#9a7b43}.customer-greeting h1{font-size:30px;margin:6px 0;color:#202820}.customer-greeting p{margin:0;color:#727b70}.loyalty-card{position:relative;isolation:isolate;display:flex;align-items:center;justify-content:space-between;gap:18px;overflow:hidden;width:100%;max-width:620px;min-height:238px;margin:0 auto 22px;padding:24px 27px;border:1.5px solid #d8b96d;border-radius:22px;background:radial-gradient(ellipse at 88% 12%,#3a3422 0,transparent 43%),linear-gradient(135deg,#080909 0%,#171717 58%,#050505 100%);color:#f8f2e5;box-shadow:0 18px 42px #0005,inset 0 0 0 1px #d8b96d35}.loyalty-card:before{content:"";position:absolute;inset:7px;border:1px solid #d8b96d65;border-radius:16px;pointer-events:none;z-index:-1}.loyalty-card:after{content:"";position:absolute;width:190px;height:190px;right:-105px;bottom:-120px;border:1px solid #d8b96d65;border-radius:50%;box-shadow:0 0 0 18px #d8b96d12,0 0 0 38px #d8b96d0b;pointer-events:none;z-index:-1}.loyalty-client-left{position:relative;z-index:1;display:flex;flex-direction:column;align-items:flex-start;min-width:0;gap:7px}.loyalty-client-logo{display:block;width:78px;height:58px;object-fit:contain;object-position:left center;margin-bottom:5px;border-radius:7px}.loyalty-client-name{max-width:100%;font-size:clamp(15px,2.5vw,20px);font-weight:800;line-height:1.2;overflow-wrap:anywhere;color:#fff8e8}.loyalty-client-code-label{margin-top:7px;color:#c8b47e;font-size:9px;font-weight:800;letter-spacing:.19em}.loyalty-client-code{color:#e4ca85;font-size:14px;font-weight:800;letter-spacing:.13em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.loyalty-client-points{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:0 0 38%;min-width:110px;min-height:140px;border-left:1px solid #d8b96d55;padding-left:18px}.loyalty-client-points strong{color:#f1d58e;font-size:clamp(58px,9vw,82px);font-weight:900;line-height:.95;letter-spacing:-.06em;font-variant-numeric:tabular-nums;text-shadow:0 3px 18px #d8b96d30}.loyalty-client-points span{margin-top:10px;color:#e7d5a5;font-size:11px;font-weight:900;letter-spacing:.3em}.loyalty-client-tricolore{position:absolute;left:0;right:0;bottom:0;height:4px;background:linear-gradient(90deg,#16834b 0 33.33%,#f4f0e8 33.33% 66.66%,#bd3434 66.66% 100%);opacity:.85}..customer-quick-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:620px;margin:0 auto}.customer-action{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:5px;min-height:112px;padding:17px;border-radius:16px;border:1px solid #e2dfd5;background:#fff;color:#202820;box-shadow:0 5px 18px #18251a08}.customer-action>span{font-size:22px;color:#a78345}.customer-action strong{font-size:14px}.customer-action small{font-size:11px;color:#737c71}.customer-action.primary{background:#e9e1ce;border-color:#d8c79f}.customer-footnote{text-align:center;color:#81877d;font-size:11px;margin:17px 0}.customer-points-summary{display:flex;align-items:center;justify-content:space-between;gap:20px;max-width:620px;margin:0 auto 22px;padding:17px 20px;background:#fff;border:1px solid #e4e0d6;border-radius:15px}.customer-points-summary small{display:block;color:#858778;font-size:9px;letter-spacing:.13em;font-weight:800}.customer-points-summary strong{font-size:30px;color:#94733d;margin-right:6px}.customer-points-summary span,.customer-points-summary p{color:#737b70;font-size:12px}.customer-points-summary p{max-width:250px;margin:0}body.customer-mode .table th{background:#f1eee5;color:#77633c}body.customer-mode .table td{color:#343d34;border-bottom-color:#ece9e0}@media(max-width:700px){body.customer-mode .content{padding:22px 15px 105px}body.customer-mode .top{height:58px;padding:0 15px}.customer-greeting h1{font-size:26px}.loyalty-card{padding:21px 19px;min-height:232px;border-radius:19px}.loyalty-card-middle{margin:23px 0 17px}.loyalty-code{font-size:21px}.customer-quick-grid{gap:9px}.customer-action{min-height:106px;padding:13px}.customer-points-summary{align-items:flex-start;flex-direction:column;gap:6px}}
+body.customer-mode{background:#f2f0e9;color:#202820}body.customer-mode .app{background:#f2f0e9}body.customer-mode .side{background:#111a15;border-right:1px solid #26362c}body.customer-mode .main{background:#f2f0e9}body.customer-mode .top{background:#111a15;border-bottom:1px solid #26362c;color:#f5f0e3}body.customer-mode .content{padding:28px 30px 110px}body.customer-mode .muted{color:#727b70}body.customer-mode .head h1,body.customer-mode h1{color:#202820}body.customer-mode .box{background:#fff;border:1px solid #e3e0d6;border-radius:18px;box-shadow:0 8px 26px #18251a0b}body.customer-mode .field,body.customer-mode select,body.customer-mode textarea{background:#fff;border:1px solid #d9d8ce;border-radius:11px;color:#202820}body.customer-mode .btn{border-radius:11px}body.customer-mode .btn.gold{background:#c9a65d;color:#171b15;border:0}body.customer-mode .bottomnav{background:#111a15;border-top:1px solid #2a3a30;box-shadow:0 -8px 24px #00000012}body.customer-mode .bottomnav button{color:#aeb9af;font-size:10px;gap:4px}body.customer-mode .bottomnav button span{font-size:19px}body.customer-mode .bottomnav button.active{color:#e7c77e}.customer-home{max-width:920px;margin:0 auto}.customer-greeting{display:flex;justify-content:space-between;align-items:end;margin:4px 0 22px}.customer-greeting span{font-size:10px;font-weight:800;letter-spacing:.16em;color:#9a7b43}.customer-greeting h1{font-size:30px;margin:6px 0;color:#202820}.customer-greeting p{margin:0;color:#727b70}..customer-quick-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:620px;margin:0 auto}.customer-action{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:5px;min-height:112px;padding:17px;border-radius:16px;border:1px solid #e2dfd5;background:#fff;color:#202820;box-shadow:0 5px 18px #18251a08}.customer-action>span{font-size:22px;color:#a78345}.customer-action strong{font-size:14px}.customer-action small{font-size:11px;color:#737c71}.customer-action.primary{background:#e9e1ce;border-color:#d8c79f}.customer-footnote{text-align:center;color:#81877d;font-size:11px;margin:17px 0}.customer-points-summary{display:flex;align-items:center;justify-content:space-between;gap:20px;max-width:620px;margin:0 auto 22px;padding:17px 20px;background:#fff;border:1px solid #e4e0d6;border-radius:15px}.customer-points-summary small{display:block;color:#858778;font-size:9px;letter-spacing:.13em;font-weight:800}.customer-points-summary strong{font-size:30px;color:#94733d;margin-right:6px}.customer-points-summary span,.customer-points-summary p{color:#737b70;font-size:12px}.customer-points-summary p{max-width:250px;margin:0}body.customer-mode .table th{background:#f1eee5;color:#77633c}body.customer-mode .table td{color:#343d34;border-bottom-color:#ece9e0}@media(max-width:700px){body.customer-mode .content{padding:22px 15px 105px}body.customer-mode .top{height:58px;padding:0 15px}.customer-greeting h1{font-size:26px}.loyalty-code{font-size:21px}.customer-quick-grid{gap:9px}.customer-action{min-height:106px;padding:13px}.customer-points-summary{align-items:flex-start;flex-direction:column;gap:6px}}
 
 /* MENJA I MUT · restyling area clienti */
 body.customer-mode{
@@ -144,11 +144,6 @@ body.customer-mode .customer-greeting span{display:inline-flex;align-items:cente
 body.customer-mode .customer-greeting span:before{content:"";width:23px;height:2px;background:#c4a15d}
 body.customer-mode .customer-greeting h1{font-size:clamp(29px,3vw,39px);margin:8px 0 5px}
 body.customer-mode .customer-greeting p{font-size:14px;color:#788176}
-body.customer-mode .loyalty-card{max-width:690px;min-height:258px;margin:0 auto 25px;padding:27px 30px;border-radius:24px;background:radial-gradient(circle at 88% 8%,#526b53 0,transparent 36%),linear-gradient(125deg,#17271d,#304534 62%,#142019);border:1px solid #6b7859;box-shadow:0 20px 42px #1c2c2040}
-body.customer-mode .loyalty-card:after{width:230px;height:230px;right:-85px;bottom:-135px;border-color:#e2c98555;box-shadow:0 0 0 20px #d9bd7914,0 0 0 43px #d9bd790a}
-body.customer-mode .loyalty-brand img{width:47px;height:47px;border-radius:12px}
-body.customer-mode .loyalty-card-middle{margin:27px 0 21px}
-body.customer-mode .loyalty-card-middle h2{font-size:22px;letter-spacing:-.02em}
 body.customer-mode .loyalty-code{font-size:25px;letter-spacing:.16em}
 body.customer-mode .customer-quick-grid{max-width:690px;gap:14px}
 body.customer-mode .customer-action{position:relative;min-height:126px;padding:19px 20px;border-radius:18px;border:1px solid #e5dfd2;background:linear-gradient(145deg,#fffefa,#fdfbf5);box-shadow:0 7px 22px #24332909;transition:transform .18s,box-shadow .18s,border-color .18s}
@@ -184,8 +179,6 @@ body.customer-mode .dialogfoot{border-top:1px solid #e8e1d4;padding-top:14px}
  body.customer-mode .box{padding:17px;border-radius:16px}
  body.customer-mode .customer-greeting{margin-bottom:20px}
  body.customer-mode .customer-greeting h1{font-size:29px}
- body.customer-mode .loyalty-card{min-height:228px;padding:21px 19px;margin-bottom:19px;border-radius:20px}
- body.customer-mode .loyalty-card-middle{margin:22px 0 17px}
  body.customer-mode .loyalty-code{font-size:21px}
  body.customer-mode .customer-quick-grid{gap:9px}
  body.customer-mode .customer-action{min-height:118px;padding:13px;border-radius:15px}
@@ -627,7 +620,6 @@ html.touch-mobile .dialogfoot button{width:100%}
 html.touch-mobile .owner-notice,html.touch-mobile .owner-order-notice{margin:10px 12px 0;padding:13px;border-radius:13px}
 html.touch-mobile .customer-greeting{display:block}
 html.touch-mobile .customer-greeting h1{font-size:27px}
-html.touch-mobile .loyalty-card{width:100%;min-height:0;padding:20px 17px}
 html.touch-mobile .customer-quick-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
 html.touch-mobile .customer-action{min-height:76px;padding:15px;display:grid;grid-template-columns:34px minmax(0,1fr);align-items:center;column-gap:10px}
 html.touch-mobile .customer-action>span{grid-row:span 2;font-size:25px}
@@ -924,165 +916,77 @@ body.admin-mode .mobile-record-card:has(.order-pickup-alert--today){background:#
 .admin-loyalty-card{position:relative;isolation:isolate;display:grid;grid-template-columns:minmax(0,1fr) 34%;align-items:center;gap:18px;max-width:760px;min-height:230px;margin:18px 0 22px;padding:24px 26px;overflow:hidden;border:1px solid #b99550;border-radius:24px;background:radial-gradient(ellipse at 82% 12%,#40301b 0,transparent 36%),linear-gradient(115deg,#050505 0%,#11100e 58%,#090909 100%);color:#f6e7c3;box-shadow:0 16px 36px #0005}
 .admin-loyalty-left,.admin-loyalty-points{position:relative;z-index:2;min-width:0}.admin-loyalty-logo{display:block;width:min(100%,265px);height:82px;object-fit:contain;object-position:left center;margin:0 0 13px;filter:drop-shadow(0 2px 5px #0009)}.admin-loyalty-name{font-size:clamp(16px,2.2vw,21px);font-weight:800;letter-spacing:.035em;overflow-wrap:anywhere;margin-top:4px}.admin-loyalty-code-label{margin-top:11px;color:#c9ad73;font-size:9px;font-weight:800;letter-spacing:.2em}.admin-loyalty-code{margin-top:3px;color:#f1d99f;font-size:clamp(13px,2vw,17px);font-weight:800;letter-spacing:.12em;overflow-wrap:anywhere}.admin-loyalty-points{display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:1px solid #b9955066;padding:12px 0 12px 14px;text-align:center}.admin-loyalty-points strong{font-size:clamp(48px,8vw,76px);line-height:1;font-weight:900;letter-spacing:-.055em;color:#f4d58c;text-shadow:0 3px 18px #d2a34a35;font-variant-numeric:tabular-nums}.admin-loyalty-points span{margin-top:9px;color:#e3c78c;font-size:12px;font-weight:900;letter-spacing:.3em}.admin-loyalty-tricolore{position:absolute;z-index:1;width:210px;height:72px;right:-45px;bottom:-32px;transform:rotate(-24deg);border-radius:60% 0 0 0;border-top:8px solid #16834a;border-bottom:8px solid #c83c36;opacity:.95;pointer-events:none}
 @media(max-width:560px){.admin-loyalty-card{grid-template-columns:minmax(0,1fr) 31%;gap:10px;min-height:190px;padding:18px 15px;border-radius:19px}.admin-loyalty-logo{height:62px;width:100%;margin-bottom:10px}.admin-loyalty-points{padding-left:9px}.admin-loyalty-points strong{font-size:clamp(38px,12vw,58px)}.admin-loyalty-points span{font-size:10px;letter-spacing:.2em}.admin-loyalty-code{letter-spacing:.06em}}
-
-
-/* Tessera fidelity cliente: logo originale, dati profilo e saldo */
-.loyalty-card{position:relative;isolation:isolate;display:grid;grid-template-columns:minmax(0,1fr) 32%;align-items:center;gap:18px;max-width:760px;min-height:225px;margin:0 auto 22px;padding:24px 26px;overflow:hidden;border:1px solid #b99550;border-radius:24px;background:radial-gradient(ellipse at 82% 12%,#40301b 0,transparent 36%),linear-gradient(115deg,#050505 0%,#11100e 58%,#090909 100%);color:#f6e7c3;box-shadow:0 16px 36px #0005}
-.loyalty-client-left,.loyalty-client-points{position:relative;z-index:2;min-width:0}
-.loyalty-client-logo{display:block;width:min(100%,265px);height:82px;object-fit:contain;object-position:left center;margin:0 0 13px;filter:drop-shadow(0 2px 5px #0009)}
-.loyalty-client-name{font-size:clamp(16px,2.2vw,21px);font-weight:800;letter-spacing:.035em;overflow-wrap:anywhere;margin-top:4px;color:#fff4dc}
-.loyalty-client-code-label{margin-top:11px;color:#c9ad73;font-size:9px;font-weight:800;letter-spacing:.2em}
-.loyalty-client-code{margin-top:3px;color:#f1d99f;font-size:clamp(13px,2vw,17px);font-weight:800;letter-spacing:.12em;overflow-wrap:anywhere}
-.loyalty-client-points{display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:1px solid #b9955066;padding:12px 0 12px 14px;text-align:center}
-.loyalty-client-points strong{font-size:clamp(48px,8vw,76px);line-height:1;font-weight:900;letter-spacing:-.055em;color:#f4d58c;text-shadow:0 3px 18px #d2a34a35;font-variant-numeric:tabular-nums}
-.loyalty-client-points span{margin-top:9px;color:#e3c78c;font-size:12px;font-weight:900;letter-spacing:.3em}
-.loyalty-client-tricolore{position:absolute;z-index:1;width:210px;height:72px;right:-45px;bottom:-32px;transform:rotate(-24deg);border-radius:60% 0 0 0;border-top:8px solid #16834a;border-bottom:8px solid #c83c36;opacity:.95;pointer-events:none}
-@media(max-width:560px){.loyalty-card{grid-template-columns:minmax(0,1fr) 31%;gap:10px;min-height:190px;padding:18px 15px;border-radius:19px}.loyalty-client-logo{height:62px;width:100%;margin-bottom:10px}.loyalty-client-points{padding-left:9px}.loyalty-client-points strong{font-size:clamp(38px,12vw,58px)}.loyalty-client-points span{font-size:10px;letter-spacing:.2em}.loyalty-client-code{letter-spacing:.06em}}
-
-
-/* Tessera cliente Menja i Mut Club: nero/oro e raccolta 12+1 */
-body.customer-mode .loyalty-card{position:relative;isolation:isolate;display:flex;flex-direction:column;gap:0;max-width:690px;min-height:0;margin:0 auto 25px;padding:23px 26px 19px;overflow:hidden;border:1px solid #b99550;border-radius:23px;background:radial-gradient(ellipse at 84% 5%,#49351b 0,transparent 35%),linear-gradient(125deg,#050505 0%,#15120d 58%,#080808 100%);color:#f7ebcf;box-shadow:0 20px 42px #0003}
-body.customer-mode .loyalty-card:before{content:"";position:absolute;inset:6px;border:1px solid #d5b66c35;border-radius:17px;pointer-events:none;z-index:-1}
-body.customer-mode .loyalty-card:after{width:180px;height:180px;right:-95px;bottom:-120px;border-color:#d8b96d55;box-shadow:0 0 0 18px #d9bd7912,0 0 0 38px #d9bd7908}
-body.customer-mode .loyalty-card-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
-body.customer-mode .loyalty-brand{display:flex;align-items:center;gap:13px;min-width:0}
-body.customer-mode .loyalty-brand img{display:block;width:90px;height:65px;object-fit:contain;object-position:left center;border-radius:0;filter:none}
-body.customer-mode .loyalty-brand div{display:flex;flex-direction:column;gap:4px}
-body.customer-mode .loyalty-brand strong{font-size:14px;letter-spacing:.16em;color:#f4d58c}
-body.customer-mode .loyalty-brand span{font-size:9px;letter-spacing:.17em;color:#d7c49a}
-body.customer-mode .loyalty-card-edition{font-size:9px;font-weight:800;letter-spacing:.2em;color:#d8b96d;border:1px solid #b9955066;border-radius:999px;padding:7px 10px}
-body.customer-mode .loyalty-card-main{display:flex;align-items:flex-end;justify-content:space-between;gap:15px;margin:17px 0 15px}
-body.customer-mode .loyalty-card-identity{min-width:0}
-body.customer-mode .loyalty-client-name{font-size:clamp(15px,2.5vw,19px);font-weight:800;color:#fff8e8;overflow-wrap:anywhere}
-body.customer-mode .loyalty-client-code-label{margin-top:9px;color:#c8b47e;font-size:8px;font-weight:800;letter-spacing:.19em}
-body.customer-mode .loyalty-client-code{margin-top:3px;color:#e4ca85;font-size:13px;font-weight:800;letter-spacing:.12em;overflow-wrap:anywhere}
-body.customer-mode .loyalty-client-points{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;min-width:120px;padding:0;border:0;text-align:right}
-body.customer-mode .loyalty-client-points strong{color:#f1d58e;font-size:clamp(43px,8vw,60px);font-weight:900;line-height:.9;letter-spacing:-.06em;text-shadow:0 3px 18px #d8b96d30;font-variant-numeric:tabular-nums}
-body.customer-mode .loyalty-client-points strong small{font-size:.38em;letter-spacing:0;color:#d9bd7a}
-body.customer-mode .loyalty-client-points span{margin-top:7px;color:#e7d5a5;font-size:8px;font-weight:900;letter-spacing:.2em}
-body.customer-mode .loyalty-progress{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:5px;margin:0 0 13px}
-body.customer-mode .loyalty-step{height:8px;border-radius:99px;background:#ffffff18;border:1px solid #d8b96d45}
-body.customer-mode .loyalty-step.is-earned{background:linear-gradient(90deg,#b48b42,#f4d58c);border-color:#e6c77e;box-shadow:0 0 8px #d8b96d35}
-body.customer-mode .loyalty-card-bottom{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;border-top:1px solid #d8b96d35;padding-top:11px}
-body.customer-mode .loyalty-reward{display:flex;flex-direction:column;gap:4px;min-width:0}
-body.customer-mode .loyalty-reward strong{font-size:12px;color:#f3d58d}
-body.customer-mode .loyalty-reward span{font-size:8px;font-weight:800;letter-spacing:.1em;color:#c9b98f}
-body.customer-mode .loyalty-total-points{display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0}
-body.customer-mode .loyalty-total-points strong{font-size:17px;line-height:1;color:#fff4d7}
-body.customer-mode .loyalty-total-points span{margin-top:3px;font-size:7px;letter-spacing:.16em;color:#c9b98f}
-body.customer-mode .loyalty-client-tricolore{position:absolute;left:0;right:0;bottom:0;height:4px;background:linear-gradient(90deg,#16834b 0 33.33%,#f4f0e8 33.33% 66.66%,#bd3434 66.66% 100%);opacity:.85}
-@media(max-width:560px){body.customer-mode .loyalty-card{padding:18px 16px 16px;border-radius:19px}body.customer-mode .loyalty-card:before{inset:5px;border-radius:13px}body.customer-mode .loyalty-brand{gap:8px}body.customer-mode .loyalty-brand img{width:68px;height:51px}body.customer-mode .loyalty-brand strong{font-size:10px;letter-spacing:.12em}body.customer-mode .loyalty-brand span{font-size:7px;letter-spacing:.1em}body.customer-mode .loyalty-card-edition{font-size:7px;padding:6px 8px}body.customer-mode .loyalty-card-main{margin:14px 0 12px;gap:8px}body.customer-mode .loyalty-client-name{font-size:14px}body.customer-mode .loyalty-client-code{font-size:10px;letter-spacing:.07em}body.customer-mode .loyalty-client-points{min-width:92px}body.customer-mode .loyalty-client-points strong{font-size:43px}body.customer-mode .loyalty-client-points span{font-size:7px;letter-spacing:.12em}body.customer-mode .loyalty-progress{gap:3px;margin-bottom:10px}body.customer-mode .loyalty-step{height:6px}body.customer-mode .loyalty-reward strong{font-size:10px}body.customer-mode .loyalty-reward span{font-size:7px}body.customer-mode .loyalty-total-points strong{font-size:15px}}
-
-
-/* Tessera fidelity: ridimensionamento proporzionale su ogni larghezza */
-body.customer-mode .loyalty-card{
-  box-sizing:border-box!important;
-  display:flex!important;
-  flex-direction:column!important;
-  align-items:stretch!important;
-  justify-content:space-between!important;
-  gap:0!important;
-  width:100%!important;
-  max-width:690px!important;
-  height:auto!important;
-  min-height:0!important;
-  aspect-ratio:690 / 258!important;
-  padding:3.8cqw!important;
-  container-type:inline-size;
+@media(max-width:560px){}
+@media(max-width:560px){}
+@media(max-width:560px){
 }
-body.customer-mode .loyalty-card-top{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:1.8cqw!important;min-width:0}
-body.customer-mode .loyalty-brand{display:flex!important;align-items:center!important;gap:1.8cqw!important;min-width:0}
-body.customer-mode .loyalty-brand img{width:13cqw!important;height:9.4cqw!important;max-width:none!important;flex:0 0 auto!important}
-body.customer-mode .loyalty-brand div{display:flex!important;flex-direction:column!important;gap:.55cqw!important;min-width:0}
-body.customer-mode .loyalty-brand strong{font-size:2.05cqw!important;letter-spacing:.14em!important;white-space:nowrap}
-body.customer-mode .loyalty-brand span{font-size:1.28cqw!important;letter-spacing:.12em!important;white-space:nowrap}
-body.customer-mode .loyalty-card-edition{font-size:1.3cqw!important;padding:1cqw 1.5cqw!important;white-space:nowrap}
-body.customer-mode .loyalty-card-main{display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:2cqw!important;margin:2cqw 0 1.5cqw!important;min-width:0}
-body.customer-mode .loyalty-card-identity{min-width:0;flex:1 1 auto}
-body.customer-mode .loyalty-client-name{font-size:2.65cqw!important;line-height:1.15!important}
-body.customer-mode .loyalty-client-code-label{margin-top:1.1cqw!important;font-size:1.15cqw!important;letter-spacing:.16em!important}
-body.customer-mode .loyalty-client-code{margin-top:.4cqw!important;font-size:1.85cqw!important;letter-spacing:.1em!important}
-body.customer-mode .loyalty-client-points{display:flex!important;flex:0 0 23cqw!important;min-width:0!important;align-items:flex-end!important;padding:0!important;border:0!important;text-align:right!important}
-body.customer-mode .loyalty-client-points strong{font-size:8.8cqw!important;line-height:.88!important}
-body.customer-mode .loyalty-client-points strong small{font-size:.38em!important}
-body.customer-mode .loyalty-client-points span{margin-top:1cqw!important;font-size:1.15cqw!important;letter-spacing:.16em!important}
-body.customer-mode .loyalty-progress{display:grid!important;grid-template-columns:repeat(12,minmax(0,1fr))!important;gap:.7cqw!important;margin:0 0 1.8cqw!important}
-body.customer-mode .loyalty-step{height:1.15cqw!important;min-height:0!important}
-body.customer-mode .loyalty-card-bottom{display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:1.5cqw!important;padding-top:1.5cqw!important}
-body.customer-mode .loyalty-reward{display:flex!important;flex-direction:column!important;gap:.5cqw!important;min-width:0}
-body.customer-mode .loyalty-reward strong{font-size:1.75cqw!important;line-height:1.1!important}
-body.customer-mode .loyalty-reward span{font-size:1.12cqw!important;letter-spacing:.08em!important}
-body.customer-mode .loyalty-total-points strong{font-size:2.45cqw!important;line-height:1!important}
-body.customer-mode .loyalty-total-points span{margin-top:.4cqw!important;font-size:1.05cqw!important}
 
-
-/* Tessera fidelity definitiva: layout orizzontale proporzionale al modello approvato */
+/* Tessera fidelity: riproduzione del modello approvato, proporzioni originali 1517:958 */
 body.customer-mode .loyalty-card{
-  position:relative;isolation:isolate;display:block;box-sizing:border-box;
-  width:100%;max-width:760px;aspect-ratio:3/2;min-height:0;height:auto;
-  margin:0 auto 22px;padding:0;overflow:hidden;container-type:inline-size;
-  border:1.15cqw solid #b68a32;border-radius:5.4cqw;
-  background:linear-gradient(135deg,#050505 0%,#000 58%,#080808 100%);
-  color:#fff4d8;box-shadow:0 1.2cqw 2.8cqw #0004,inset 0 0 0 .35cqw #f4d58c;
+  position:relative;display:block;box-sizing:border-box;
+  width:100%;max-width:760px;aspect-ratio:1517 / 958;height:auto;min-height:0;
+  margin:0 auto 22px;padding:0;overflow:hidden;isolation:isolate;
+  container-type:inline-size;border:1px solid #b99550;border-radius:3.2%;
+  background:#030303;box-shadow:0 12px 30px #0004,inset 0 0 0 2px #e2b958;
 }
 body.customer-mode .loyalty-card:before{
-  content:"";position:absolute;inset:2.1cqw;border:.55cqw solid #d9ad4c;
-  border-radius:4.5cqw;pointer-events:none;z-index:4;
+  content:"";position:absolute;inset:2.1%;border:1px solid #dcb64f;
+  border-radius:3%;pointer-events:none;z-index:5;
 }
-body.customer-mode .loyalty-card:after{content:none}
-.loyalty-card-brand{
-  position:absolute;left:6.2%;top:8%;width:59%;height:53%;
+body.customer-mode .loyalty-card-brand{
+  position:absolute;left:5.8%;top:7.5%;width:59%;height:51%;
   display:flex;align-items:center;justify-content:center;z-index:2;
 }
-.loyalty-card-brand img{display:block;width:100%;height:100%;object-fit:contain;object-position:center}
-.loyalty-card-divider{
-  position:absolute;left:5.8%;right:5.8%;top:66.5%;height:.75cqw;
-  background:linear-gradient(90deg,#a97820,#ffe18b 48%,#b98228);
-  box-shadow:0 0 .6cqw #f5cf6a66;z-index:2;
+body.customer-mode .loyalty-card-brand img{
+  display:block;width:100%;height:100%;object-fit:contain;object-position:center;
 }
-.loyalty-card-points{
-  position:absolute;top:16%;right:6%;width:28%;height:43%;
+body.customer-mode .loyalty-card-divider{
+  position:absolute;left:0;right:0;top:65.6%;height:.42cqw;
+  background:linear-gradient(90deg,#a87824,#f7d56e 48%,#a87824);z-index:2;
+}
+body.customer-mode .loyalty-card-points{
+  position:absolute;top:15.5%;right:4.5%;width:28%;height:42%;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  border-left:.65cqw solid #c99535;padding-left:2%;z-index:2;text-align:center;
+  border-left:.42cqw solid #c89436;padding-left:1.8%;z-index:2;text-align:center;
 }
-.loyalty-card-points strong{
-  display:block;color:#f7d47b;font-size:17cqw;line-height:.88;font-weight:900;
-  letter-spacing:-.075em;font-variant-numeric:tabular-nums;
-  text-shadow:0 .5cqw 1.5cqw #d49a2b55;white-space:nowrap;
+body.customer-mode .loyalty-card-points strong{
+  display:block;max-width:100%;color:#f4c85e;font-size:17cqw;line-height:.9;
+  font-weight:900;letter-spacing:-.075em;white-space:nowrap;
+  font-variant-numeric:tabular-nums;text-shadow:0 2px 12px #d49a2b44;
 }
-.loyalty-card-points span{
-  display:block;margin-top:2.2cqw;color:#f3ce70;font-size:4.5cqw;
-  line-height:1;font-weight:900;letter-spacing:.12em;
+body.customer-mode .loyalty-card-points span{
+  display:block;margin-top:1.7cqw;color:#f1c65e;font-size:4.5cqw;
+  line-height:1;font-weight:900;letter-spacing:.1em;
 }
-.loyalty-card-customer{
-  position:absolute;left:6.2%;top:72%;width:67%;z-index:3;
-  display:flex;flex-direction:column;gap:.5cqw;min-width:0;
+body.customer-mode .loyalty-card-customer{
+  position:absolute;left:6.2%;top:71.2%;width:67%;z-index:3;
+  display:flex;flex-direction:column;gap:.35cqw;min-width:0;
 }
-.loyalty-card-name{
-  color:#fff8e9;font-size:5.9cqw;line-height:1.04;font-weight:900;
-  letter-spacing:.015em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+body.customer-mode .loyalty-card-name{
+  color:#fff8e9;font-family:Arial,Helvetica,sans-serif;font-size:5.2cqw;
+  line-height:1.04;font-weight:900;letter-spacing:.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.loyalty-card-code{
-  color:#e9b94f;font-size:3.55cqw;line-height:1.15;font-weight:500;
-  letter-spacing:.025em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+body.customer-mode .loyalty-card-code{
+  color:#e8b54b;font-family:Arial,Helvetica,sans-serif;font-size:3.65cqw;
+  line-height:1.15;font-weight:500;letter-spacing:.015em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.loyalty-card-tricolore{
-  position:absolute;right:-2%;bottom:1%;width:51%;height:27%;z-index:2;
+body.customer-mode .loyalty-card-tricolore{
+  position:absolute;right:-2%;bottom:-1%;width:51%;height:31%;z-index:2;
   border-top:1.15cqw solid #078b43;border-radius:90% 0 0 0;
-  transform:rotate(-8deg);pointer-events:none;
+  transform:rotate(-9deg);pointer-events:none;
 }
-.loyalty-card-tricolore:before,.loyalty-card-tricolore:after{
+body.customer-mode .loyalty-card-tricolore:before,
+body.customer-mode .loyalty-card-tricolore:after{
   content:"";position:absolute;left:0;right:0;border-radius:90% 0 0 0;
 }
-.loyalty-card-tricolore:before{top:2.1cqw;border-top:1.15cqw solid #f5f2e9}
-.loyalty-card-tricolore:after{top:4.2cqw;border-top:1.15cqw solid #d71920}
+body.customer-mode .loyalty-card-tricolore:before{top:2.1cqw;border-top:1.15cqw solid #f5f2e9}
+body.customer-mode .loyalty-card-tricolore:after{top:4.2cqw;border-top:1.15cqw solid #d71920}
 @media(max-width:560px){
-  body.customer-mode .loyalty-card{width:100%;max-width:none;aspect-ratio:3/2;min-height:0;height:auto;border-radius:5.4cqw}
-  body.customer-mode .loyalty-card:before{inset:2.1cqw}
-  .loyalty-card-brand{left:5.8%;width:60%;height:53%}
-  .loyalty-card-points{right:5%;width:29%}
-  .loyalty-card-name{font-size:5.6cqw}
-  .loyalty-card-code{font-size:3.25cqw}
+  body.customer-mode .loyalty-card{width:100%;max-width:none;aspect-ratio:1517 / 958}
+  body.customer-mode .loyalty-card-name{font-size:5cqw}
+  body.customer-mode .loyalty-card-code{font-size:3.4cqw}
 }
 </style></head>
 <body><script>
@@ -1128,7 +1032,7 @@ function openNew(which=page){if(which==='Esporta report'){exportData();return}le
 function closeModal(){document.getElementById('modal').innerHTML=''}async function addRow(e,which){e.preventDefault();let obj=Object.fromEntries(new FormData(e.target));if(which==='Clienti'){try{let code;if(onlineClient){const{data,error}=await onlineClient.rpc('allocate_customer_code');if(error)throw error;code=data}else{let nums=db.customers.map(c=>parseInt(String(c.code||'').replace(/\D/g,''))||0);code='C'+String(Math.max(0,...nums)+1).padStart(3,'0')}obj.code=code;obj.fidelity_code=code;obj.points=0}catch(err){showError(err);return}}if(which==='Ordini'||which==='Prenotazioni')obj.code='ORD-'+String(Date.now()).slice(-6);let bucket={'Clienti':'customers','Prodotti':'products','Ricette':'recipes','Listini':'priceLists','Ordini':'orders','Prenotazioni':'orders','Lotti produzione':'lots','Magazzino':'inventory','Fidelity':'fidelity','Produzione':'production','Fatture':'invoices','Finanza':'events'}[which]||'events';if(which==='Clienti')obj.status=obj.status||'In attesa di abilitazione';if(which==='Ordini')obj.status=obj.status||'Da approvare';if(which==='Ordini'&&window.activeProfile?.role!=='admin')obj.customer=window.activeProfile.full_name||window.activeProfile.email;obj.id=crypto.randomUUID();db[bucket].push(obj);save();if(onlineClient)persistRecord(bucket,obj).catch(showError);closeModal();render()}
 function filterRows(inp){let q=inp.value.toLowerCase();document.querySelectorAll('.table tbody tr').forEach(r=>r.style.display=r.innerText.toLowerCase().includes(q)?'':'none')}
 function exportData(){let blob=new Blob([JSON.stringify({format:'menja-i-mut-backup-v1',exportedAt:new Date().toISOString(),data:db},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='menja-i-mut-backup.json';a.click();URL.revokeObjectURL(a.href)}
-</script><script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script><script src="app-online.js?v=165"></script><script>
+</script><script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script><script src="app-online.js?v=166"></script><script>
 if ("serviceWorker" in navigator) {
   let menjaControllerReloaded = false;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
@@ -1137,7 +1041,7 @@ if ("serviceWorker" in navigator) {
     window.location.reload();
   });
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=162", { scope: "./", updateViaCache: "none" }).then(registration => {
+    navigator.serviceWorker.register("./sw.js?v=163", { scope: "./", updateViaCache: "none" }).then(registration => {
       registration.update().catch(() => {});
     }).catch(err => console.warn("Service worker non disponibile:", err));
   });
