@@ -1019,8 +1019,14 @@ function filterRows(inp){let q=inp.value.toLowerCase();document.querySelectorAll
 function exportData(){let blob=new Blob([JSON.stringify({format:'menja-i-mut-backup-v1',exportedAt:new Date().toISOString(),data:db},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='menja-i-mut-backup.json';a.click();URL.revokeObjectURL(a.href)}
 </script><script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script><script src="app-online.js?v=164"></script><script>
 if ("serviceWorker" in navigator) {
+  let menjaControllerReloaded = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (menjaControllerReloaded) return;
+    menjaControllerReloaded = true;
+    window.location.reload();
+  });
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=159", { scope: "./" }).then(registration => {
+    navigator.serviceWorker.register("./sw.js?v=160", { scope: "./", updateViaCache: "none" }).then(registration => {
       registration.update().catch(() => {});
     }).catch(err => console.warn("Service worker non disponibile:", err));
   });
