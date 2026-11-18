@@ -1015,6 +1015,75 @@ body.customer-mode .loyalty-reward span{font-size:1.12cqw!important;letter-spaci
 body.customer-mode .loyalty-total-points strong{font-size:2.45cqw!important;line-height:1!important}
 body.customer-mode .loyalty-total-points span{margin-top:.4cqw!important;font-size:1.05cqw!important}
 
+
+/* Tessera fidelity definitiva: layout orizzontale proporzionale al modello approvato */
+body.customer-mode .loyalty-card{
+  position:relative;isolation:isolate;display:block;box-sizing:border-box;
+  width:100%;max-width:760px;aspect-ratio:3/2;min-height:0;height:auto;
+  margin:0 auto 22px;padding:0;overflow:hidden;container-type:inline-size;
+  border:1.15cqw solid #b68a32;border-radius:5.4cqw;
+  background:linear-gradient(135deg,#050505 0%,#000 58%,#080808 100%);
+  color:#fff4d8;box-shadow:0 1.2cqw 2.8cqw #0004,inset 0 0 0 .35cqw #f4d58c;
+}
+body.customer-mode .loyalty-card:before{
+  content:"";position:absolute;inset:2.1cqw;border:.55cqw solid #d9ad4c;
+  border-radius:4.5cqw;pointer-events:none;z-index:4;
+}
+body.customer-mode .loyalty-card:after{content:none}
+.loyalty-card-brand{
+  position:absolute;left:6.2%;top:8%;width:59%;height:53%;
+  display:flex;align-items:center;justify-content:center;z-index:2;
+}
+.loyalty-card-brand img{display:block;width:100%;height:100%;object-fit:contain;object-position:center}
+.loyalty-card-divider{
+  position:absolute;left:5.8%;right:5.8%;top:66.5%;height:.75cqw;
+  background:linear-gradient(90deg,#a97820,#ffe18b 48%,#b98228);
+  box-shadow:0 0 .6cqw #f5cf6a66;z-index:2;
+}
+.loyalty-card-points{
+  position:absolute;top:16%;right:6%;width:28%;height:43%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  border-left:.65cqw solid #c99535;padding-left:2%;z-index:2;text-align:center;
+}
+.loyalty-card-points strong{
+  display:block;color:#f7d47b;font-size:17cqw;line-height:.88;font-weight:900;
+  letter-spacing:-.075em;font-variant-numeric:tabular-nums;
+  text-shadow:0 .5cqw 1.5cqw #d49a2b55;white-space:nowrap;
+}
+.loyalty-card-points span{
+  display:block;margin-top:2.2cqw;color:#f3ce70;font-size:4.5cqw;
+  line-height:1;font-weight:900;letter-spacing:.12em;
+}
+.loyalty-card-customer{
+  position:absolute;left:6.2%;top:72%;width:67%;z-index:3;
+  display:flex;flex-direction:column;gap:.5cqw;min-width:0;
+}
+.loyalty-card-name{
+  color:#fff8e9;font-size:5.9cqw;line-height:1.04;font-weight:900;
+  letter-spacing:.015em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.loyalty-card-code{
+  color:#e9b94f;font-size:3.55cqw;line-height:1.15;font-weight:500;
+  letter-spacing:.025em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.loyalty-card-tricolore{
+  position:absolute;right:-2%;bottom:1%;width:51%;height:27%;z-index:2;
+  border-top:1.15cqw solid #078b43;border-radius:90% 0 0 0;
+  transform:rotate(-8deg);pointer-events:none;
+}
+.loyalty-card-tricolore:before,.loyalty-card-tricolore:after{
+  content:"";position:absolute;left:0;right:0;border-radius:90% 0 0 0;
+}
+.loyalty-card-tricolore:before{top:2.1cqw;border-top:1.15cqw solid #f5f2e9}
+.loyalty-card-tricolore:after{top:4.2cqw;border-top:1.15cqw solid #d71920}
+@media(max-width:560px){
+  body.customer-mode .loyalty-card{width:100%;max-width:none;aspect-ratio:3/2;min-height:0;height:auto;border-radius:5.4cqw}
+  body.customer-mode .loyalty-card:before{inset:2.1cqw}
+  .loyalty-card-brand{left:5.8%;width:60%;height:53%}
+  .loyalty-card-points{right:5%;width:29%}
+  .loyalty-card-name{font-size:5.6cqw}
+  .loyalty-card-code{font-size:3.25cqw}
+}
 </style></head>
 <body><script>
 /* Rileva lo smartphone anche se Android assegna alla PWA una larghezza desktop */
@@ -1059,7 +1128,7 @@ function openNew(which=page){if(which==='Esporta report'){exportData();return}le
 function closeModal(){document.getElementById('modal').innerHTML=''}async function addRow(e,which){e.preventDefault();let obj=Object.fromEntries(new FormData(e.target));if(which==='Clienti'){try{let code;if(onlineClient){const{data,error}=await onlineClient.rpc('allocate_customer_code');if(error)throw error;code=data}else{let nums=db.customers.map(c=>parseInt(String(c.code||'').replace(/\D/g,''))||0);code='C'+String(Math.max(0,...nums)+1).padStart(3,'0')}obj.code=code;obj.fidelity_code=code;obj.points=0}catch(err){showError(err);return}}if(which==='Ordini'||which==='Prenotazioni')obj.code='ORD-'+String(Date.now()).slice(-6);let bucket={'Clienti':'customers','Prodotti':'products','Ricette':'recipes','Listini':'priceLists','Ordini':'orders','Prenotazioni':'orders','Lotti produzione':'lots','Magazzino':'inventory','Fidelity':'fidelity','Produzione':'production','Fatture':'invoices','Finanza':'events'}[which]||'events';if(which==='Clienti')obj.status=obj.status||'In attesa di abilitazione';if(which==='Ordini')obj.status=obj.status||'Da approvare';if(which==='Ordini'&&window.activeProfile?.role!=='admin')obj.customer=window.activeProfile.full_name||window.activeProfile.email;obj.id=crypto.randomUUID();db[bucket].push(obj);save();if(onlineClient)persistRecord(bucket,obj).catch(showError);closeModal();render()}
 function filterRows(inp){let q=inp.value.toLowerCase();document.querySelectorAll('.table tbody tr').forEach(r=>r.style.display=r.innerText.toLowerCase().includes(q)?'':'none')}
 function exportData(){let blob=new Blob([JSON.stringify({format:'menja-i-mut-backup-v1',exportedAt:new Date().toISOString(),data:db},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='menja-i-mut-backup.json';a.click();URL.revokeObjectURL(a.href)}
-</script><script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script><script src="app-online.js?v=164"></script><script>
+</script><script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script><script src="app-online.js?v=165"></script><script>
 if ("serviceWorker" in navigator) {
   let menjaControllerReloaded = false;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
@@ -1068,7 +1137,7 @@ if ("serviceWorker" in navigator) {
     window.location.reload();
   });
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=161", { scope: "./", updateViaCache: "none" }).then(registration => {
+    navigator.serviceWorker.register("./sw.js?v=162", { scope: "./", updateViaCache: "none" }).then(registration => {
       registration.update().catch(() => {});
     }).catch(err => console.warn("Service worker non disponibile:", err));
   });
